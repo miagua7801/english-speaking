@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마이크·음성 테스트</title>
+<style>
+  :root{--bg:#f3f1ea;--card:#fff;--ink:#1d1d1f;--sub:#6b6b70;--line:#e6e2d6;
+        --teal:#1fb5c9;--orange:#ef8a2e;--ok:#1f9d55;--warn:#e0a100;--no:#d64545;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);padding:20px 14px;
+       font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+  .wrap{max-width:640px;margin:0 auto}
+  .card{background:var(--card);border-radius:16px;padding:18px 20px;margin-bottom:14px;
+        box-shadow:0 4px 16px rgba(0,0,0,.07)}
+  h1{font-size:20px;margin:0 0 4px}
+  .lead{font-size:13px;color:var(--sub);margin:0 0 16px}
+  h2{font-size:15px;margin:0 0 10px;color:var(--orange)}
+  .step{font-size:12px;color:var(--sub);margin-bottom:6px}
+  button{font:inherit;border:0;border-radius:10px;padding:11px 16px;cursor:pointer;
+         background:var(--teal);color:#fff;font-weight:700}
+  button.ghost{background:#eceae2;color:var(--ink)}
+  button:disabled{opacity:.45;cursor:default}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .talk{width:100%;padding:22px;font-size:18px;background:var(--orange);margin-top:10px;
+        touch-action:none;user-select:none}
+  .talk.rec{background:var(--no)}
+  .target{background:#fff5a8;border-radius:10px;padding:12px;font-size:17px;font-weight:700;
+          text-align:center;margin:10px 0}
+  .result{background:#f7f6f1;border-radius:10px;padding:12px;font-size:15px;min-height:46px;
+          margin-top:10px;word-break:break-word}
+  .meter{height:14px;background:#eceae2;border-radius:7px;overflow:hidden;margin-top:10px}
+  .meter i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s}
+  ul.checks{list-style:none;padding:0;margin:0;font-size:14px}
+  ul.checks li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;
+               justify-content:space-between;gap:10px}
+  ul.checks li:last-child{border-bottom:0}
+  .badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:8px;color:#fff;white-space:nowrap}
+  .b-ok{background:var(--ok)} .b-warn{background:var(--warn)} .b-no{background:var(--no)} .b-idle{background:#b9b9bd}
+  .hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6}
+  .env{font-size:12px;color:var(--sub);line-height:1.7;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card" id="diagCard" style="background:#fff8e1">
+    <h2>진단</h2>
+    <div class="env" id="diag">스크립트가 실행되지 않았습니다. 이 문장이 그대로 보이면, 페이지가 스크립트를 막는 곳(파일 미리보기, 구글 드라이브 미리보기 등)에서 열린 것입니다.</div>
+  </div>
+
+  <div class="card">
+    <h1>마이크·음성 테스트</h1>
+    <p class="lead">학교 크롬북에서 이 페이지를 열어 1번부터 5번까지 차례로 눌러 보세요. 모두 초록색이면 롤플레이 웹앱을 만들어도 됩니다.</p>
+    <ul class="checks" id="checks">
+      <li><span>0. 브라우저·주소 확인</span><span class="badge b-idle" id="c0">대기</span></li>
+      <li><span>1. 영어 음성 재생 (TTS)</span><span class="badge b-idle" id="c1">대기</span></li>
+      <li><span>2. 마이크 권한 · 입력 감지</span><span class="badge b-idle" id="c2">대기</span></li>
+      <li><span>3. 영어 음성 인식 (STT)</span><span class="badge b-idle" id="c3">대기</span></li>
+      <li><span>4. 결과 이미지 저장 (PNG)</span><span class="badge b-idle" id="c4">대기</span></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>1. 영어 음성 재생</h2>
+    <div class="step">아래 문장이 영어로 들리면 성공입니다. 소리가 나지 않으면 크롬북 음량을 확인하세요.</div>
+    <div class="target">What kinds of movies do you like?</div>
+    <div class="row">
+      <button id="btnSpeak">▶ 듣기</button>
+      <button class="ghost" id="btnSlow">🐢 천천히 듣기</button>
+    </div>
+    <div class="hint" id="voiceInfo">음성 목록을 불러오는 중…</div>
+  </div>
+
+  <div class="card">
+    <h2>2. 마이크 권한 · 입력 감지</h2>
+    <div class="step">버튼을 누르면 권한 창이 뜹니다. [허용]을 누른 뒤 말해 보세요. 막대가 움직이면 성공입니다.</div>
+    <div class="row"><button id="btnMic">🎤 마이크 켜기</button></div>
+    <div class="meter"><i id="level"></i></div>
+    <div class="hint" id="micMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 영어 음성 인식</h2>
+    <div class="step">버튼을 <b>누르고 있는 동안</b> 말합니다. 아래 문장을 크롬북에서 20cm 거리에서 말해 보세요.</div>
+    <div class="target">I like action movies.</div>
+    <button class="talk" id="btnTalk">🎙 누르고 말하기</button>
+    <div class="result" id="sttOut">인식된 문장이 여기에 표시됩니다.</div>
+    <div class="hint" id="sttMsg">인터넷이 연결되어 있어야 인식이 됩니다.</div>
+  </div>
+
+  <div class="card">
+    <h2>4. 결과 이미지 저장</h2>
+    <div class="step">버튼을 누르면 PNG 파일이 내려받아집니다. 실제 앱에서 결과 카드를 저장하는 방식과 같습니다.</div>
+    <div class="row"><button id="btnPng">🖼 PNG 저장 테스트</button></div>
+    <div class="hint" id="pngMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>5. 환경 정보 (선생님 확인용)</h2>
+    <div class="env" id="env"></div>
+    <div class="hint">문제가 있으면 이 화면을 캡처해 두시면 원인을 찾기 쉽습니다.</div>
+  </div>
+
+</div>
+
+<script>
+window.onerror = function(msg, src, line){
+  var d = document.getElementById("diag");
+  if (d) d.innerHTML = "⚠️ 스크립트 오류: " + msg + " (줄 " + line + ")";
+  return false;
+};
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  $("diag").textContent = "✅ 스크립트 실행됨 · " + new Date().toLocaleTimeString("ko-KR");
+  function mark(id, state, text){
+    var el = $(id);
+    el.className = "badge " + ({ok:"b-ok", warn:"b-warn", no:"b-no"}[state] || "b-idle");
+    el.textContent = text;
+  }
+
+  /* ---------- 0. 환경 확인 ---------- */
+  var ua = navigator.userAgent;
+  var isChrome = /Chrome\//.test(ua) && !/Edg\/|OPR\//.test(ua);
+  var secure = window.isSecureContext;
+  var hasSTT = ("webkitSpeechRecognition" in window) || ("SpeechRecognition" in window);
+  var hasTTS = ("speechSynthesis" in window);
+  var envLines = [
+    "주소: " + location.origin,
+    "보안 연결(https 또는 localhost): " + (secure ? "예" : "아니오"),
+    "브라우저: " + (isChrome ? "Chrome 계열" : "Chrome 아님"),
+    "음성 인식 지원: " + (hasSTT ? "예" : "아니오"),
+    "음성 재생 지원: " + (hasTTS ? "예" : "아니오"),
+    "인터넷 연결: " + (navigator.onLine ? "연결됨" : "끊김"),
+    "화면 크기: " + window.innerWidth + " x " + window.innerHeight,
+    "UA: " + ua
+  ];
+  $("env").innerHTML = envLines.join("<br>");
+
+  if (location.protocol === "file:"){
+    $("diag").innerHTML = "⚠️ 이 페이지가 <b>파일(file://)</b>로 열렸습니다. 이 상태에서는 마이크와 음성 인식이 동작하지 않습니다. "
+      + "GitHub Pages나 Netlify에 올린 뒤 <b>https:// 주소</b>로 열어 주세요.";
+    $("diagCard").style.background = "#ffe3e3";
+  }
+
+  if (secure && isChrome && hasSTT && hasTTS) mark("c0","ok","정상");
+  else if (!secure) mark("c0","no","https 필요");
+  else if (!hasSTT) mark("c0","no","인식 미지원");
+  else mark("c0","warn","Chrome 권장");
+
+  /* ---------- 1. TTS ---------- */
+  var voice = null, tries = 0;
+  function pickVoice(){
+    if (!hasTTS) { $("voiceInfo").textContent = "이 브라우저는 음성 재생을 지원하지 않습니다."; return true; }
+    var all = [];
+    try { all = speechSynthesis.getVoices() || []; } catch(e){}
+    var vs = all.filter(function(v){ return /^en(-|_)/i.test(v.lang); });
+    if (!vs.length){
+      $("voiceInfo").textContent = "영어 음성 목록이 아직 비어 있습니다 (" + all.length + "개 감지). "
+        + "그래도 [▶ 듣기] 버튼은 눌러 보세요 — 기본 음성으로 재생될 수 있습니다.";
+      return false;
+    }
+    voice = vs.filter(function(v){ return /US/i.test(v.lang); })[0] || vs[0];
+    $("voiceInfo").textContent = "사용 음성: " + voice.name + " (" + voice.lang + ")";
+    return true;
+  }
+  if (hasTTS){
+    if (!pickVoice()){
+      var timer = setInterval(function(){
+        tries++;
+        if (pickVoice() || tries > 20) clearInterval(timer);
+      }, 300);
+    }
+    try { speechSynthesis.onvoiceschanged = pickVoice; } catch(e){}
+  }
+
+  function speak(rate){
+    if (!hasTTS) { mark("c1","no","미지원"); return; }
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance("What kinds of movies do you like?");
+    u.lang = "en-US"; u.rate = rate;
+    if (voice) u.voice = voice;
+    u.onstart = function(){ mark("c1","warn","재생 중"); };
+    u.onend   = function(){ mark("c1","ok","정상"); };
+    u.onerror = function(e){ mark("c1","no","오류"); $("voiceInfo").textContent = "재생 오류: " + (e.error||""); };
+    speechSynthesis.speak(u);
+  }
+  $("btnSpeak").onclick = function(){ speak(1); };
+  $("btnSlow").onclick  = function(){ speak(0.7); };
+
+  /* ---------- 2. 마이크 입력 ---------- */
+  var micOn = false, peak = 0;
+  $("btnMic").onclick = function(){
+    if (micOn) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      mark("c2","no","미지원"); $("micMsg").textContent = "이 브라우저에서는 마이크를 쓸 수 없습니다."; return;
+    }
+    mark("c2","warn","권한 요청 중");
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      micOn = true;
+      mark("c2","warn","말해 보세요");
+      $("micMsg").textContent = "권한이 허용되었습니다. 말할 때 막대가 움직이면 정상입니다.";
+      $("btnMic").disabled = true;
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = ctx.createMediaStreamSource(stream);
+      var an = ctx.createAnalyser(); an.fftSize = 512;
+      src.connect(an);
+      var buf = new Uint8Array(an.fftSize);
+      (function loop(){
+        an.getByteTimeDomainData(buf);
+        var sum = 0;
+        for (var i=0;i<buf.length;i++){ var d = (buf[i]-128)/128; sum += d*d; }
+        var rms = Math.sqrt(sum/buf.length);
+        var pct = Math.min(100, Math.round(rms*400));
+        $("level").style.width = pct + "%";
+        if (pct > peak) peak = pct;
+        if (peak >= 12) mark("c2","ok","정상");
+        requestAnimationFrame(loop);
+      })();
+    }).catch(function(err){
+      mark("c2","no","거부됨");
+      $("micMsg").textContent = "마이크를 쓸 수 없습니다 (" + err.name + "). 주소창 왼쪽 자물쇠에서 마이크를 [허용]으로 바꿔 주세요.";
+    });
+  };
+
+  /* ---------- 3. STT ---------- */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, listening = false;
+  var TARGET_CHUNKS = ["i like", "action movies"];
+
+  function norm(s){
+    return (s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
+  }
+  function scoreText(text){
+    var t = norm(text), hit = 0;
+    TARGET_CHUNKS.forEach(function(c){ if (t.indexOf(c) >= 0) hit++; });
+    return hit;
+  }
+
+  function startRec(){
+    if (!SR){ mark("c3","no","미지원"); $("sttMsg").textContent = "이 브라우저는 음성 인식을 지원하지 않습니다. Chrome으로 열어 주세요."; return; }
+    if (listening) return;
+    rec = new SR();
+    rec.lang = "en-US";
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.maxAlternatives = 3;
+
+    rec.onstart = function(){
+      listening = true;
+      $("btnTalk").classList.add("rec");
+      $("btnTalk").textContent = "🔴 듣는 중… (손을 떼면 끝)";
+      mark("c3","warn","듣는 중");
+      $("sttMsg").textContent = "";
+    };
+    rec.onresult = function(e){
+      var alts = e.results[0], best = "", bestScore = -1;
+      for (var i=0;i<alts.length;i++){
+        var s = scoreText(alts[i].transcript);
+        if (s > bestScore){ bestScore = s; best = alts[i].transcript; }
+      }
+      var hits = TARGET_CHUNKS.map(function(c){
+        return (norm(best).indexOf(c) >= 0 ? "✅ " : "⬜ ") + c;
+      }).join("　");
+      $("sttOut").innerHTML = "<b>" + best + "</b><br><span style='font-size:13px'>" + hits + "</span>";
+      if (bestScore === TARGET_CHUNKS.length) mark("c3","ok","정상");
+      else mark("c3","warn","일부만 인식");
+    };
+    rec.onerror = function(e){
+      var msg = {
+        "not-allowed":"마이크 권한이 거부되었습니다. 주소창 자물쇠에서 허용해 주세요.",
+        "service-not-allowed":"브라우저가 음성 인식 서비스를 막고 있습니다. 학교 정책 설정을 확인해 주세요.",
+        "no-speech":"소리가 인식되지 않았습니다. 조금 더 가까이에서 말해 보세요.",
+        "audio-capture":"마이크를 찾지 못했습니다. 이어폰 연결을 확인해 주세요.",
+        "network":"네트워크 오류입니다. 학교 와이파이에서 음성 서버가 막혀 있을 수 있습니다.",
+        "aborted":"인식이 중단되었습니다."
+      }[e.error] || ("오류: " + e.error);
+      $("sttMsg").textContent = msg;
+      if (e.error === "no-speech" || e.error === "aborted") mark("c3","warn","다시 시도");
+      else mark("c3","no","실패");
+    };
+    rec.onend = function(){
+      listening = false;
+      $("btnTalk").classList.remove("rec");
+      $("btnTalk").textContent = "🎙 누르고 말하기";
+    };
+    try { rec.start(); } catch(err){ listening = false; }
+  }
+  function stopRec(){ if (rec && listening) { try { rec.stop(); } catch(e){} } }
+
+  var talk = $("btnTalk");
+  talk.addEventListener("pointerdown", function(e){ e.preventDefault(); startRec(); });
+  talk.addEventListener("pointerup",   function(e){ e.preventDefault(); stopRec(); });
+  talk.addEventListener("pointerleave",function(){ stopRec(); });
+  talk.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+
+  /* ---------- 4. PNG 저장 ---------- */
+  $("btnPng").onclick = function(){
+    try{
+      var c = document.createElement("canvas");
+      c.width = 720; c.height = 360;
+      var g = c.getContext("2d");
+      g.fillStyle = "#ffffff"; g.fillRect(0,0,720,360);
+      g.fillStyle = "#1fb5c9"; g.fillRect(0,0,720,80);
+      g.fillStyle = "#ffffff"; g.font = "bold 28px sans-serif";
+      g.fillText("말하기 결과 카드 (테스트)", 28, 50);
+      g.fillStyle = "#1d1d1f"; g.font = "20px sans-serif";
+      g.fillText("이 파일이 저장되면 결과 카드 저장도 정상입니다.", 28, 140);
+      g.fillText("저장 시각: " + new Date().toLocaleString("ko-KR"), 28, 180);
+      g.fillStyle = "#1f9d55"; g.font = "bold 22px sans-serif";
+      g.fillText("✅ PNG 저장 성공", 28, 240);
+      c.toBlob(function(blob){
+        if (!blob){ mark("c4","no","실패"); $("pngMsg").textContent = "이미지를 만들지 못했습니다."; return; }
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url; a.download = "png-test.png";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        mark("c4","ok","정상");
+        $("pngMsg").textContent = "다운로드 폴더에 png-test.png 파일이 저장되었는지 확인해 주세요.";
+      }, "image/png");
+    } catch(err){
+      mark("c4","no","실패");
+      $("pngMsg").textContent = "저장 오류: " + err.message;
+    }
+  };
+})();
+</script>
+</body>
+</html>
