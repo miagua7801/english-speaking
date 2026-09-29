@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>추천 요청 롤플레이</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --ink: #1f2430;
+    --muted: #6b7280;
+    --line: #e3e7ef;
+    --primary: #3563e9;
+    --primary-soft: #e8eefe;
+    --green: #16a34a;
+    --green-soft: #e7f7ec;
+    --yellow: #d99a00;
+    --yellow-soft: #fff6d9;
+    --red: #dc2626;
+    --red-soft: #fdecec;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.55 system-ui, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  [hidden] { display: none !important; }
+  button, input { font: inherit; color: inherit; }
+  .en { font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; }
+
+  /* ---------- 상단 ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 20px;
+    background: var(--card); border-bottom: 1px solid var(--line);
+  }
+  .topbar .title { font-weight: 700; }
+  .topbar .spacer { flex: 1; }
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    background: var(--primary-soft); color: var(--primary); font-size: 14px; font-weight: 600;
+  }
+  .linkbtn {
+    background: none; border: 0; color: var(--muted); font-size: 14px;
+    text-decoration: underline; cursor: pointer; padding: 4px;
+  }
+
+  .banner {
+    margin: 12px auto 0; max-width: 820px; padding: 12px 16px;
+    border-radius: 10px; font-size: 15px;
+  }
+  .banner.warn { background: var(--yellow-soft); border: 1px solid #f3dc8c; }
+  .banner.err  { background: var(--red-soft); border: 1px solid #f5c2c2; }
+
+  main { max-width: 820px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 18px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 19px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 small { color: var(--muted); font-weight: 500; font-size: 15px; }
+  .card h2 .ok { margin-left: auto; font-size: 15px; color: var(--green); font-weight: 600; }
+
+  /* ---------- 입력 ---------- */
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 200px; }
+  .field > span { font-size: 15px; color: var(--muted); font-weight: 600; }
+  input[type=text] {
+    width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 10px;
+    background: #fff; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  input.bad { border-color: var(--red); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fff; cursor: pointer; font-weight: 600;
+  }
+  .btn:hover { border-color: #c8cfdc; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.big { padding: 14px 26px; font-size: 19px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+  .seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    border: 0; background: #fff; padding: 8px 14px; cursor: pointer; font-weight: 600;
+    border-right: 1px solid var(--line);
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--primary); color: #fff; }
+
+  .sub { font-size: 15px; color: var(--muted); margin: 6px 0 0; }
+  .setting { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .setting > .lbl { font-weight: 600; min-width: 64px; }
+  input[type=range] { width: 160px; accent-color: var(--primary); }
+
+  /* ---------- 마이크 ---------- */
+  .radios { display: flex; gap: 10px; flex-wrap: wrap; }
+  .radio {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 10px;
+  }
+  .radio:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+  .radio input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; }
+
+  .meter {
+    height: 12px; border-radius: 999px; background: #edf0f5; overflow: hidden; flex: 1;
+  }
+  .meter i {
+    display: block; height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #4ade80, #16a34a); transition: width .06s linear;
+  }
+  .meter-row { display: flex; align-items: center; gap: 10px; margin: 12px 0; font-size: 14px; color: var(--muted); }
+
+  .ptt {
+    width: 100%; padding: 22px 16px; border-radius: 16px; cursor: pointer;
+    border: 2px dashed #b9c6ec; background: var(--primary-soft); color: var(--primary);
+    font-size: 20px; font-weight: 700; user-select: none; -webkit-user-select: none; touch-action: none;
+  }
+  .ptt.listening {
+    border: 2px solid var(--red); background: var(--red-soft); color: var(--red);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  .ptt:disabled { opacity: .5; cursor: not-allowed; animation: none; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,.35); } 50% { box-shadow: 0 0 0 10px rgba(220,38,38,0); } }
+  kbd {
+    display: inline-block; padding: 1px 8px; border: 1px solid #c8cfdc; border-bottom-width: 3px;
+    border-radius: 6px; background: #fff; font-size: 14px; font-family: inherit;
+  }
+  .kbd-hint { text-align: center; font-size: 14px; color: var(--muted); margin-top: 8px; }
+
+  .msg { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-size: 15px; }
+  .msg.ok { background: var(--green-soft); color: #11632f; }
+  .msg.err { background: var(--red-soft); color: #9b1c1c; }
+  .msg.info { background: #f1f3f8; color: var(--ink); }
+  .heard { font-size: 18px; font-weight: 600; }
+
+  .start-area { text-align: center; margin-top: 8px; }
+  .start-area .msg { text-align: left; }
+
+  /* ---------- 화면 2 ---------- */
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .tab {
+    flex: 1 1 150px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid var(--line); background: #fff; font-weight: 700; color: var(--muted);
+  }
+  .tab.on { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+  .tab.done::after { content: " ✅"; }
+
+  .q { padding: 14px 0; border-top: 1px dashed var(--line); }
+  .q:first-of-type { border-top: 0; padding-top: 4px; }
+  .q-title { font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .num {
+    display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: 14px;
+  }
+
+  .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .opt {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px;
+  }
+  .opt:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+  .opt input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; flex: none; }
+  .opt .en { font-weight: 700; }
+  .opt small { display: block; color: var(--muted); font-weight: 500; }
+
+  .own { margin-top: 12px; padding: 14px; border-radius: 12px; background: #f7f8fc; }
+  .own .field { margin-bottom: 8px; }
+  .own .sub { margin: 0; }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; font-size: 14px; color: var(--muted); }
+  .chip {
+    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff;
+    cursor: pointer; font-size: 15px;
+  }
+  .chip:hover { border-color: var(--primary); color: var(--primary); }
+
+  .adjs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .adj {
+    padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff;
+    cursor: pointer; font-weight: 700;
+  }
+  .adj.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  .preview h3 { margin: 0 0 12px; font-size: 17px; }
+  .line { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+  .who {
+    flex: none; width: 76px; text-align: center; font-size: 13px; font-weight: 700;
+    padding: 3px 0; border-radius: 8px;
+  }
+  .who.them { background: #eef0f4; color: var(--muted); }
+  .who.me { background: var(--primary-soft); color: var(--primary); }
+  .say { font-size: 18px; }
+  .say.them { color: var(--muted); }
+  .fill { color: var(--primary); font-weight: 700; border-bottom: 2px solid #b9c6ec; }
+  .blank { display: inline-block; min-width: 70px; border-bottom: 2px solid var(--red); color: var(--red); text-align: center; }
+  .tip { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--yellow-soft); font-size: 15px; }
+
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+  .missing { font-size: 15px; color: var(--red); margin: 0 0 10px; padding-left: 20px; }
+  .missing:empty { display: none; }
+
+  .msg.warn { background: var(--yellow-soft); color: #6b4d00; }
+
+  /* ---------- 화면 3 ---------- */
+  .rp-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .rp-prog { font-weight: 700; }
+  .bar { flex: 1 1 160px; height: 10px; background: #e3e7ef; border-radius: 999px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--primary); border-radius: 999px; transition: width .3s; }
+  .seg.small button { padding: 5px 10px; font-size: 14px; }
+  .round-label { font-weight: 700; color: var(--muted); font-size: 15px; margin-bottom: 10px; }
+  .log { display: flex; flex-direction: column; gap: 10px; }
+  .bubble {
+    max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 18px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .bubble.them { align-self: flex-start; background: #eef0f4; border-bottom-left-radius: 4px; }
+  .bubble.me { align-self: flex-end; background: var(--primary-soft); border-bottom-right-radius: 4px; }
+  .bubble.me.practice { background: var(--yellow-soft); }
+  .bubble.speaking { outline: 2px solid var(--primary); }
+  .bubble .who2 { font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .replay {
+    border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px;
+    cursor: pointer; font-size: 14px; flex: none; font-weight: 600;
+  }
+  body.tts-on .replay { opacity: .4; pointer-events: none; }
+  .turn { border: 2px solid var(--primary); }
+  .turn-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .turn-head .spacer { flex: 1; }
+  .lvl { font-size: 14px; padding: 2px 10px; border-radius: 999px; background: var(--green-soft); color: #11632f; font-weight: 600; }
+  .target { font-size: 24px; font-weight: 700; line-height: 1.7; }
+  .gap { display: inline-block; border-bottom: 3px solid var(--primary); margin: 0 4px; height: 1.1em; vertical-align: -0.1em; }
+  .ko-hint { font-size: 20px; font-weight: 600; padding: 12px 14px; background: #f7f8fc; border-radius: 10px; }
+  .frags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .frag { padding: 3px 10px; border-radius: 8px; font-size: 15px; background: #fff; border: 1.5px solid var(--line); }
+  .frag.ok { border-color: #9ad8ae; background: #fff; }
+  .frag.extra { color: var(--muted); background: #f3f4f6; border-style: dashed; }
+  .selfs { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+  .selfbtn {
+    flex: 1 1 150px; padding: 18px 10px; border-radius: 14px; border: 2px solid var(--line);
+    background: #fff; cursor: pointer; font-size: 17px; font-weight: 700;
+  }
+  .selfbtn span { display: block; font-size: 44px; line-height: 1.2; }
+  .selfbtn:hover { border-color: var(--primary); background: var(--primary-soft); }
+
+  @media (max-width: 520px) {
+    main { padding: 14px 12px 40px; }
+    h1 { font-size: 22px; }
+    .who { width: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="title">🎙️ 추천 요청 롤플레이</span>
+  <span class="badge" id="classBadge" hidden></span>
+  <span class="badge" id="studentBadge" hidden></span>
+  <span class="spacer"></span>
+  <button type="button" class="linkbtn" id="resetBtn">처음부터 다시하기</button>
+</header>
+
+<div id="banners"></div>
+
+<main>
+  <!-- ======================= 화면 1: 시작 ======================= -->
+  <section class="screen" data-screen="1" hidden>
+    <h1>말하기 연습을 시작해요</h1>
+    <p class="lead">이름을 쓰고, 소리와 마이크를 확인한 뒤 시작해요.</p>
+
+    <div class="card">
+      <h2>① 내 정보</h2>
+      <div class="row">
+        <label class="field"><span>이름</span>
+          <input type="text" id="name" autocomplete="off" placeholder="예: 김민준">
+        </label>
+        <label class="field" style="flex:0 1 140px"><span>번호</span>
+          <input type="text" id="num" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="예: 7">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 소리 확인</h2>
+      <button type="button" class="btn" id="ttsTest">🔊 영어 소리 들어보기</button>
+      <div class="setting">
+        <span class="lbl">속도</span>
+        <div class="seg rateSeg">
+          <button type="button" data-rate="0.7">느리게</button>
+          <button type="button" data-rate="0.85">보통</button>
+          <button type="button" data-rate="1">빠르게</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="lbl">크기</span>
+        <input type="range" id="volume" min="0.2" max="1" step="0.1">
+      </div>
+      <p class="sub">이어폰이 없으면 크롬북 소리를 너무 크지 않게 맞춰요.</p>
+    </div>
+
+    <div class="card">
+      <h2>③ 마이크 확인 <span class="ok" id="micOk" hidden>✅ 확인 완료</span></h2>
+
+      <div id="micSetup">
+        <button type="button" class="btn primary" id="micAllow">🎤 마이크 허용하기</button>
+        <p class="sub">버튼을 누르면 위쪽에 창이 떠요. <b>허용</b>을 눌러 주세요.</p>
+      </div>
+
+      <div id="micReady" hidden>
+        <div class="setting" style="margin-top:0">
+          <span class="lbl">말하기 방법</span>
+          <div class="radios">
+            <label class="radio"><input type="radio" name="mode" value="hold"> 누르고 있기</label>
+            <label class="radio"><input type="radio" name="mode" value="toggle"> 한 번 누르기</label>
+          </div>
+        </div>
+
+        <div class="meter-row">🎚️ 내 목소리 <div class="meter"><i></i></div></div>
+
+        <p style="margin:0 0 10px" id="testGuide"></p>
+        <button type="button" class="ptt" id="testPtt"></button>
+        <div class="kbd-hint" id="kbdHint"></div>
+      </div>
+
+      <div id="testMsg" hidden></div>
+    </div>
+
+    <div class="start-area">
+      <div id="startMsg" hidden></div>
+      <button type="button" class="btn primary big" id="startBtn" style="margin-top:12px">시작하기 ▶</button>
+    </div>
+  </section>
+
+  <!-- ======================= 화면 2: 종류 고르기 ======================= -->
+  <section class="screen" data-screen="2" hidden>
+    <h1>무엇을 추천할지 정해요</h1>
+    <p class="lead">종류를 고르고, 친구에게 추천할 것과 그 이유(형용사)를 정해요.</p>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="panel"></div>
+
+    <ul class="missing" id="missing"></ul>
+    <div class="nav">
+      <button type="button" class="btn" id="prevBtn">← 이전</button>
+      <button type="button" class="btn primary big" id="nextBtn">다음 →</button>
+    </div>
+  </section>
+
+  <!-- ======================= 화면 3: 롤플레이 ======================= -->
+  <section class="screen" data-screen="3" hidden>
+    <div class="rp-top">
+      <span class="rp-prog" id="rpProg"></span>
+      <div class="bar" id="rpBar"><i></i></div>
+      <div class="seg small rateSeg" title="친구 목소리 속도">
+        <button type="button" data-rate="0.7">느리게</button>
+        <button type="button" data-rate="0.85">보통</button>
+        <button type="button" data-rate="1">빠르게</button>
+      </div>
+    </div>
+
+    <div class="card" id="rpIntro" hidden></div>
+
+    <div id="rpLine" hidden>
+      <div class="card">
+        <div class="round-label" id="rpRound"></div>
+        <div class="log" id="rpLog"></div>
+      </div>
+
+      <div class="card turn" id="rpTurn" hidden>
+        <div class="turn-head">
+          <b>🎤 내 차례</b>
+          <span class="lvl" id="rpLevel"></span>
+          <span class="spacer"></span>
+          <span class="sub" id="rpTry" style="margin:0"></span>
+        </div>
+        <div id="rpScaffold"></div>
+        <button type="button" class="btn" id="rpPeek" style="margin-top:10px">👀 문장 보기</button>
+
+        <div id="rpSpeak">
+          <div class="meter-row">🎚️ 내 목소리 <div class="meter"><i></i></div></div>
+          <button type="button" class="btn primary" id="rpMicBtn" hidden>🎤 마이크 켜기</button>
+          <button type="button" class="ptt" id="rpPtt"></button>
+          <div class="kbd-hint"></div>
+        </div>
+
+        <div id="rpErr" hidden></div>
+        <div id="rpResult" hidden></div>
+        <div id="rpNextWrap" class="nav" style="margin-top:12px" hidden>
+          <span class="sub">또는 <kbd>Enter</kbd></span>
+          <button type="button" class="btn primary big" id="rpNext">다음 ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="rpSelf" hidden></div>
+  </section>
+
+  <!-- ======================= 화면 4: 결과 (다음 단계에서 개발) ======================= -->
+  <section class="screen" data-screen="4" hidden>
+    <h1>🎉 모두 끝났어요!</h1>
+    <div class="card">
+      <p style="margin-top:0">🚧 결과 카드(이미지 저장)는 다음 단계에서 만들 예정이에요.</p>
+      <div id="s4summary"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+ * 설정 · 내용
+ * ========================================================= */
+const STORE_KEY = 'roleplay_recommend_v1';
+
+const params = new URLSearchParams(location.search);
+const CLASS_NAME = (params.get('class') || '').trim();
+const CAT_COUNT = params.get('cat') === '2' ? 2 : 3;
+
+const CATS = {
+  movies: {
+    emoji: '🎬', label: 'Movies', ko: '영화',
+    ask: '어떤 종류의 영화를 좋아하나요?',
+    hintA1: '친구에게 어떤 종류의 영화를 좋아하는지 물어보세요.',
+    items: [
+      { plural: 'action movies', single: 'an action movie' },
+      { plural: 'musical movies', single: 'a musical movie' },
+    ],
+    useSome: false,
+    ownEx: { plural: 'horror movies', single: 'a horror movie' },
+    recAsk: '친구에게 추천할 영화 제목',
+    hints: ['Spider-Man', 'Frozen', 'Inside Out'],
+    adjs: ['exciting', 'funny', 'touching', 'interesting', 'scary'],
+    partner: { kind: 'musical movies', rec: 'Frozen', adj: 'touching' },
+  },
+  books: {
+    emoji: '📚', label: 'Books', ko: '책',
+    ask: '어떤 종류의 책을 좋아하나요?',
+    hintA1: '친구에게 어떤 종류의 책을 좋아하는지 물어보세요.',
+    items: [
+      { plural: 'sci-fi novels', single: 'a sci-fi novel' },
+      { plural: 'historical novels', single: 'a historical novel' },
+    ],
+    useSome: false,
+    ownEx: { plural: 'fantasy novels', single: 'a fantasy novel' },
+    recAsk: '친구에게 추천할 책 제목',
+    hints: ['The Martian', 'Wonder', 'Harry Potter'],
+    adjs: ['exciting', 'funny', 'touching', 'interesting', 'scary'],
+    partner: { kind: 'historical novels', rec: 'Wonder', adj: 'interesting' },
+  },
+  food: {
+    emoji: '🍽️', label: 'Food', ko: '음식',
+    ask: '어떤 종류의 음식을 좋아하나요?',
+    hintA1: '친구에게 어떤 종류의 음식을 좋아하는지 물어보세요.',
+    items: [
+      { plural: 'Korean food' },
+      { plural: 'Italian food' },
+    ],
+    useSome: true,
+    ownEx: { plural: 'Mexican food' },
+    recAsk: '친구에게 추천할 음식 이름',
+    hints: ['bibimbap', 'bulgogi', 'pizza', 'pasta'],
+    adjs: ['delicious', 'spicy', 'sweet', 'healthy'],
+    partner: { kind: 'Italian food', rec: 'pasta', adj: 'delicious' },
+  },
+};
+const CAT_KEYS = ['movies', 'books', 'food'].slice(0, CAT_COUNT);
+
+/* =========================================================
+ * 저장 (localStorage)
+ * ========================================================= */
+function emptyChoice() {
+  return { pick: null, ownPlural: '', ownSingular: '', singularTouched: false, rec: '', adj: '' };
+}
+function defaultState() {
+  const choices = {};
+  Object.keys(CATS).forEach(k => { choices[k] = emptyChoice(); });
+  return {
+    v: 1,
+    screen: 1,
+    profile: { name: '', num: '' },
+    settings: { mode: 'hold', rate: 0.85, volume: 1 },
+    micTested: false,
+    step: 0,
+    choices,
+    startedAt: null,
+    rp: null, // 롤플레이 진행 상황 (화면 3)
+  };
+}
+function loadState() {
+  const base = defaultState();
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!saved || saved.v !== 1) return base;
+    Object.assign(base.profile, saved.profile);
+    Object.assign(base.settings, saved.settings);
+    Object.keys(CATS).forEach(k => Object.assign(base.choices[k], saved.choices && saved.choices[k]));
+    base.screen = saved.screen || 1;
+    base.step = Math.min(saved.step || 0, CAT_KEYS.length - 1);
+    base.micTested = !!saved.micTested;
+    base.startedAt = saved.startedAt || null;
+    if (saved.rp && saved.rp.ci < CAT_KEYS.length) base.rp = saved.rp;
+  } catch (e) { /* 저장된 값이 깨졌으면 새로 시작 */ }
+  return base;
+}
+const state = loadState();
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 저장 불가 기기 */ }
+}
+
+/* =========================================================
+ * 공통 도구
+ * ========================================================= */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const HANGUL = /[ㄱ-ㅎㅏ-ㅣ가-힣]/;
+
+function clean(s) {
+  return String(s || '').replace(/\s+/g, ' ').trim().replace(/[.!?]+$/, '').trim();
+}
+function showMsg(el, type, html) {
+  el.className = 'msg ' + type;
+  el.innerHTML = html;
+  el.hidden = false;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ---------- 채점 도구 (표현 조각 + 편집 거리 유사도) ---------- */
+function normalize(s) {
+  return String(s || '').toLowerCase()
+    .replace(/[’‘`]/g, "'")
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function similarity(a, b) {
+  const max = Math.max(a.length, b.length);
+  return max ? 1 - levenshtein(a, b) / max : 1;
+}
+/** 인식된 문장 안에서 조각과 가장 비슷한 부분의 유사도 (0~1) */
+function fragmentScore(text, fragment) {
+  const t = normalize(text), f = normalize(fragment);
+  if (!f) return 1;
+  if ((' ' + t + ' ').includes(' ' + f + ' ')) return 1;
+  const tw = t.split(' ').filter(Boolean), n = f.split(' ').length;
+  let best = 0;
+  for (let size = Math.max(1, n - 1); size <= n + 1; size++) {
+    for (let i = 0; i + size <= tw.length; i++) {
+      best = Math.max(best, similarity(tw.slice(i, i + size).join(' '), f));
+    }
+  }
+  return best;
+}
+const PASS_SCORE = 0.8;
+
+/* =========================================================
+ * 환경 확인 · 안내 배너
+ * ========================================================= */
+const SR = window.webkitSpeechRecognition || window.SpeechRecognition;
+const UA = navigator.userAgent;
+const IS_CHROME = /Chrome\//.test(UA) && !/Edg\/|OPR\/|SamsungBrowser|Whale/.test(UA);
+
+function renderBanners() {
+  const list = [];
+  if (location.protocol === 'file:') {
+    list.push(['err', '📁 파일로 직접 열면 음성 인식이 동작하지 않아요. 선생님이 준 <b>링크(https://…)</b>로 열어 주세요.']);
+  } else if (!window.isSecureContext) {
+    list.push(['err', '🔒 https 주소가 아니라서 마이크를 쓸 수 없어요. 선생님이 준 링크로 열어 주세요.']);
+  }
+  if (!SR || !IS_CHROME) {
+    list.push(['warn', '🌐 이 앱은 <b>크롬(Chrome)</b>에서만 제대로 동작해요. 크롬으로 다시 열어 주세요.']);
+  }
+  if (!navigator.onLine) {
+    list.push(['err', '📶 인터넷이 끊겼어요. 음성 인식은 인터넷이 필요해요. 와이파이를 확인해 주세요.']);
+  }
+  $('#banners').innerHTML = list.map(([t, h]) => `<div class="banner ${t}">${h}</div>`).join('');
+}
+window.addEventListener('online', () => { renderBanners(); PTT.refreshAll(); });
+window.addEventListener('offline', () => { renderBanners(); PTT.refreshAll(); });
+
+/* =========================================================
+ * TTS (말하기 · 상대 대사)
+ * ========================================================= */
+const TTS = {
+  voice: null,
+  busy: false,
+  current: null, // 크롬에서 재생 도중 사라지지 않도록 참조 유지
+  loadVoices() {
+    const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+    const en = voices.filter(v => /^en[-_]US/i.test(v.lang));
+    TTS.voice =
+      en.find(v => /google/i.test(v.name)) ||
+      en.find(v => v.localService) ||
+      en[0] ||
+      voices.find(v => /^en/i.test(v.lang)) ||
+      null;
+  },
+  speak(text) {
+    return new Promise(resolve => {
+      if (!window.speechSynthesis) { resolve(); return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      if (TTS.voice) u.voice = TTS.voice;
+      u.rate = state.settings.rate;
+      u.volume = state.settings.volume;
+      TTS.current = u;
+      TTS.setBusy(true);
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(guard);
+        // 스피커 여운이 인식되지 않도록 잠깐 더 잠금
+        setTimeout(() => { TTS.setBusy(false); resolve(); }, 350);
+      };
+      // 이벤트가 오지 않는 경우를 대비한 안전장치
+      const guard = setTimeout(finish, 3000 + text.length * 130 / state.settings.rate);
+      u.onend = finish;
+      u.onerror = finish;
+      speechSynthesis.speak(u);
+    });
+  },
+  setBusy(b) {
+    TTS.busy = b;
+    document.body.classList.toggle('tts-on', b);
+    PTT.refreshAll();
+  },
+};
+if (window.speechSynthesis) {
+  TTS.loadVoices();
+  speechSynthesis.addEventListener('voiceschanged', TTS.loadVoices);
+}
+
+/* =========================================================
+ * 마이크 (권한 + 입력 막대)
+ * ========================================================= */
+const Mic = {
+  ready: false,
+  stream: null,
+  ctx: null,
+  analyser: null,
+  buf: null,
+  level: 0,
+  async init() {
+    if (Mic.ready) return { ok: true };
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return { ok: false, msg: '이 브라우저에서는 마이크를 쓸 수 없어요. 크롬으로 선생님이 준 링크를 열어 주세요.' };
+    }
+    try {
+      Mic.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+    } catch (e) {
+      if (e.name === 'NotAllowedError' || e.name === 'SecurityError') return { ok: false, msg: MSG.denied };
+      if (e.name === 'NotFoundError') return { ok: false, msg: MSG.noMic };
+      return { ok: false, msg: '마이크를 켜지 못했어요. 다른 탭에서 마이크를 쓰고 있다면 닫고 다시 해 보세요.' };
+    }
+    try {
+      Mic.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = Mic.ctx.createMediaStreamSource(Mic.stream);
+      Mic.analyser = Mic.ctx.createAnalyser();
+      Mic.analyser.fftSize = 512;
+      Mic.buf = new Float32Array(Mic.analyser.fftSize);
+      src.connect(Mic.analyser);
+      requestAnimationFrame(Mic.tick);
+    } catch (e) { /* 막대가 안 보여도 인식은 가능 */ }
+    Mic.ready = true;
+    PTT.refreshAll();
+    return { ok: true };
+  },
+  tick() {
+    if (Mic.analyser) {
+      Mic.analyser.getFloatTimeDomainData(Mic.buf);
+      let sum = 0;
+      for (let i = 0; i < Mic.buf.length; i++) sum += Mic.buf[i] * Mic.buf[i];
+      const rms = Math.sqrt(sum / Mic.buf.length);
+      const target = Math.min(1, rms * 6);
+      Mic.level = target > Mic.level ? target : Mic.level * 0.85 + target * 0.15;
+      const w = Math.round(Mic.level * 100) + '%';
+      $$('.meter i').forEach(el => { el.style.width = w; });
+    }
+    requestAnimationFrame(Mic.tick);
+  },
+};
+// 자동 재생 정책으로 멈춘 AudioContext를 첫 조작 때 깨움
+document.addEventListener('pointerdown', () => { if (Mic.ctx && Mic.ctx.state === 'suspended') Mic.ctx.resume(); });
+
+/* =========================================================
+ * 안내 문구
+ * ========================================================= */
+const MSG = {
+  denied: '🚫 마이크 사용이 막혀 있어요. 주소창 왼쪽의 <b>🔒 아이콘</b> → <b>마이크: 허용</b>으로 바꾼 뒤 <b>새로고침</b>하세요.',
+  noMic: '🎤 마이크를 찾을 수 없어요. 크롬북 마이크가 켜져 있는지 확인하고 선생님께 알려 주세요.',
+  noSpeech: '🔇 목소리가 들리지 않았어요. 크롬북에서 <b>20cm</b> 정도 거리에서 보통 목소리로 다시 말해 보세요.',
+  network: '📶 인터넷 연결 문제로 음성 인식을 못 했어요. 와이파이를 확인하고 다시 해 보세요.',
+  offline: '📶 인터넷이 끊겨 있어요. 음성 인식은 인터넷이 필요해요.',
+  noSR: '🌐 이 브라우저는 음성 인식을 지원하지 않아요. <b>크롬(Chrome)</b>으로 열어 주세요.',
+  locked: '🔈 상대방 말이 끝난 뒤에 말해요. (소리가 나오는 동안은 마이크가 잠겨요)',
+  needMic: '🎤 먼저 <b>마이크 허용하기</b> 버튼을 눌러 주세요.',
+  noMatch: '🤔 무슨 말인지 알아듣지 못했어요. 조금 더 또렷하게 다시 말해 보세요.',
+  short: () => state.settings.mode === 'hold'
+    ? '✋ 너무 빨리 뗐어요. <b>누른 채로</b> 말하고, 말이 끝나면 떼세요.'
+    : '다시 해 보세요.',
+};
+function errorMessage(code) {
+  switch (code) {
+    case 'not-allowed':
+    case 'service-not-allowed': return MSG.denied;
+    case 'no-speech': return MSG.noSpeech;
+    case 'network': return MSG.network;
+    case 'audio-capture': return MSG.noMic;
+    default: return `음성 인식 중 문제가 생겼어요 (${esc(code)}). 다시 해 보세요.`;
+  }
+}
+
+/* =========================================================
+ * 말하기 버튼 (push-to-talk / 토글 / 스페이스바)
+ * ========================================================= */
+const PTT = {
+  all: [],
+  active: null, // 스페이스바가 조종하는 버튼
+  refreshAll() { PTT.all.forEach(p => p.render()); },
+  blockReason() {
+    if (!SR) return MSG.noSR;
+    if (!navigator.onLine) return MSG.offline;
+    if (TTS.busy) return MSG.locked;
+    if (!Mic.ready) return MSG.needMic;
+    return null;
+  },
+  /**
+   * @param btn 버튼 요소
+   * @param opts { onResult(alts), onError(html), onStart(), labels? }
+   */
+  create(btn, opts) {
+    let rec = null, listening = false, pressedAt = 0;
+    let alts = [], errCode = null, shortPress = false;
+
+    function render() {
+      const mode = state.settings.mode;
+      btn.classList.toggle('listening', listening);
+      btn.disabled = !rec && !!PTT.blockReason() && PTT.blockReason() !== MSG.needMic;
+      if (listening) {
+        btn.textContent = mode === 'hold' ? '● 듣고 있어요… (떼면 끝)' : '● 듣고 있어요… (다시 누르면 끝)';
+      } else if (rec) {
+        btn.textContent = '… 준비 중';
+      } else if (TTS.busy) {
+        btn.textContent = '🔇 상대방이 말하는 중';
+      } else {
+        btn.textContent = mode === 'hold' ? '🎤 누르고 있는 동안 말하기' : '🎤 한 번 눌러서 말하기';
+      }
+    }
+
+    function start() {
+      if (rec) return;
+      const block = PTT.blockReason();
+      if (block) { opts.onError(block); return; }
+      alts = []; errCode = null; shortPress = false; pressedAt = Date.now();
+      rec = new SR();
+      rec.lang = 'en-US';
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 3;
+      rec.onstart = () => { listening = true; render(); };
+      rec.onresult = e => {
+        const r = e.results[0];
+        alts = [];
+        for (let i = 0; i < r.length; i++) alts.push({ text: r[i].transcript, confidence: r[i].confidence });
+      };
+      rec.onerror = e => { errCode = e.error; };
+      rec.onend = () => {
+        rec = null; listening = false; render();
+        if (shortPress) opts.onError(MSG.short());
+        else if (errCode && errCode !== 'aborted') opts.onError(errorMessage(errCode));
+        else if (alts.length) opts.onResult(alts);
+        else if (!errCode) opts.onError(MSG.noMatch);
+      };
+      try {
+        rec.start();
+      } catch (e) {
+        rec = null;
+        opts.onError('마이크를 시작하지 못했어요. 잠시 뒤 다시 해 보세요.');
+      }
+      render();
+      if (rec && opts.onStart) opts.onStart();
+    }
+
+    function stop() {
+      if (!rec) return;
+      if (state.settings.mode === 'hold' && Date.now() - pressedAt < 350) {
+        shortPress = true;
+        rec.abort();
+      } else {
+        rec.stop();
+      }
+    }
+
+    const api = {
+      render,
+      press() {
+        if (state.settings.mode === 'toggle') { rec ? stop() : start(); }
+        else start();
+      },
+      release() {
+        if (state.settings.mode === 'hold') stop();
+      },
+      cancel() { if (rec) { shortPress = false; errCode = 'aborted'; rec.abort(); } },
+    };
+
+    btn.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch (x) { /* 무시 */ }
+      api.press();
+    });
+    btn.addEventListener('pointerup', () => api.release());
+    btn.addEventListener('pointercancel', () => api.release());
+    // 기본 click 동작 막기 (스페이스·엔터로 두 번 실행 방지)
+    btn.addEventListener('click', e => e.preventDefault());
+    btn.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+
+    PTT.all.push(api);
+    render();
+    return api;
+  },
+};
+
+function isTyping(el) {
+  if (!el) return false;
+  if (el.isContentEditable) return true;
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+  return el.tagName === 'INPUT' && !['radio', 'checkbox', 'button', 'range'].includes(el.type);
+}
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || !PTT.active || isTyping(e.target)) return;
+  e.preventDefault();
+  if (!e.repeat) PTT.active.press();
+});
+document.addEventListener('keyup', e => {
+  if (e.code !== 'Space' || !PTT.active || isTyping(e.target)) return;
+  e.preventDefault();
+  PTT.active.release();
+});
+// 스페이스를 누른 채 창을 벗어나면 keyup이 오지 않으므로 종료 처리
+window.addEventListener('blur', () => { if (PTT.active) PTT.active.release(); });
+
+/* =========================================================
+ * 화면 전환
+ * ========================================================= */
+function go(n) {
+  state.screen = n;
+  save();
+  $$('.screen').forEach(s => { s.hidden = Number(s.dataset.screen) !== n; });
+  PTT.active = n === 1 ? testPtt : null;
+  if (n === 2) renderStep();
+  if (n === 3) {
+    if (!state.rp) { state.rp = newRp(); save(); }
+    renderRp();
+  }
+  if (n === 4) renderScreen4();
+  window.scrollTo(0, 0);
+}
+
+function renderHeader() {
+  const cb = $('#classBadge');
+  cb.hidden = !CLASS_NAME;
+  cb.textContent = CLASS_NAME;
+  const sb = $('#studentBadge');
+  const { name, num } = state.profile;
+  sb.hidden = !(state.screen > 1 && name);
+  sb.textContent = `${num}번 ${name}`;
+}
+
+$('#resetBtn').addEventListener('click', () => {
+  if (!confirm('입력한 내용을 모두 지우고 처음부터 다시 할까요?')) return;
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 무시 */ }
+  location.reload();
+});
+
+/* =========================================================
+ * 화면 1 — 시작
+ * ========================================================= */
+const nameEl = $('#name'), numEl = $('#num');
+nameEl.value = state.profile.name;
+numEl.value = state.profile.num;
+nameEl.addEventListener('input', () => { state.profile.name = nameEl.value; save(); });
+numEl.addEventListener('input', () => {
+  numEl.value = numEl.value.replace(/\D/g, '').slice(0, 2);
+  state.profile.num = numEl.value;
+  save();
+});
+
+// 소리 설정
+function renderRate() {
+  $$('.rateSeg button').forEach(b => b.classList.toggle('on', Number(b.dataset.rate) === state.settings.rate));
+}
+$$('.rateSeg button').forEach(b => b.addEventListener('click', () => {
+  state.settings.rate = Number(b.dataset.rate);
+  save();
+  renderRate();
+  if (state.screen === 1) TTS.speak('This is my speed.');
+}));
+const volEl = $('#volume');
+volEl.value = state.settings.volume;
+volEl.addEventListener('change', () => {
+  state.settings.volume = Number(volEl.value);
+  save();
+  TTS.speak('Is this loud enough?');
+});
+$('#ttsTest').addEventListener('click', () => TTS.speak('Hello! Can you hear me?'));
+renderRate();
+
+// 마이크
+const testMsg = $('#testMsg');
+function showMicReady() {
+  $('#micSetup').hidden = true;
+  $('#micReady').hidden = false;
+}
+$('#micAllow').addEventListener('click', async () => {
+  const r = await Mic.init();
+  if (r.ok) {
+    showMicReady();
+    testMsg.hidden = true;
+  } else {
+    showMsg(testMsg, 'err', r.msg);
+  }
+});
+// 이미 권한이 있으면 바로 준비
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({ name: 'microphone' }).then(p => {
+    if (p.state === 'granted') Mic.init().then(r => {
+      if (!r.ok) return;
+      showMicReady();
+      if (state.screen === 3) renderRp();
+    });
+    else if (p.state === 'denied') showMsg(testMsg, 'err', MSG.denied);
+  }).catch(() => { /* 지원하지 않으면 버튼으로 요청 */ });
+}
+
+// 말하기 방법
+function renderMode() {
+  const hold = state.settings.mode === 'hold';
+  $$('input[name=mode]').forEach(r => { r.checked = r.value === state.settings.mode; });
+  $('#testGuide').innerHTML = hold
+    ? '<b>스페이스바</b>(또는 아래 버튼)를 <b>누른 채로</b> <span class="en"><b>“Hello”</b></span> 라고 말하고 떼세요.'
+    : '<b>스페이스바</b>(또는 아래 버튼)를 <b>한 번</b> 누르고 <span class="en"><b>“Hello”</b></span> 라고 말하세요. 말이 끝나면 저절로 멈춰요.';
+  $$('.kbd-hint').forEach(el => {
+    el.innerHTML = hold
+      ? '<kbd>Space</kbd> 를 누르고 있는 동안 녹음돼요'
+      : '<kbd>Space</kbd> 를 한 번 누르면 녹음이 시작돼요';
+  });
+  PTT.refreshAll();
+}
+$$('input[name=mode]').forEach(r => r.addEventListener('change', () => {
+  if (PTT.active) PTT.active.cancel();
+  state.settings.mode = r.value;
+  save();
+  renderMode();
+  r.blur(); // 라디오에 포커스가 남아 스페이스바가 먹히지 않도록
+}));
+
+const testPtt = PTT.create($('#testPtt'), {
+  onStart() { testMsg.hidden = true; },
+  onResult(alts) {
+    let best = alts[0], bestScore = -1;
+    alts.forEach(a => {
+      const s = fragmentScore(a.text, 'hello');
+      if (s > bestScore) { bestScore = s; best = a; }
+    });
+    const heard = `<div class="heard en">“${esc(best.text)}”</div>`;
+    if (bestScore >= PASS_SCORE) {
+      state.micTested = true;
+      save();
+      renderMicOk();
+      showMsg(testMsg, 'ok', `✅ 잘 들려요! 이렇게 들렸어요: ${heard}`);
+    } else {
+      showMsg(testMsg, 'err', `이렇게 들렸어요: ${heard}<div style="margin-top:4px">“Hello”가 아니에요. 주변 소리가 섞였을 수 있어요. 다시 해 보세요.</div>`);
+    }
+  },
+  onError(html) { showMsg(testMsg, 'err', html); },
+});
+function renderMicOk() { $('#micOk').hidden = !state.micTested; }
+renderMode();
+renderMicOk();
+
+// 시작하기
+let skipTestWarned = false;
+$('#startBtn').addEventListener('click', () => {
+  const startMsg = $('#startMsg');
+  const name = nameEl.value.trim(), num = numEl.value.trim();
+  if (!name || !num) {
+    showMsg(startMsg, 'err', '✍️ <b>이름</b>과 <b>번호</b>를 먼저 써 주세요.');
+    (name ? numEl : nameEl).focus();
+    return;
+  }
+  if (!state.micTested && !skipTestWarned) {
+    skipTestWarned = true;
+    showMsg(startMsg, 'info', '🎤 아직 마이크 테스트를 통과하지 않았어요. 위에서 <b>“Hello”</b>를 먼저 말해 보세요.<br>테스트 없이 시작하려면 <b>시작하기</b>를 한 번 더 누르세요.');
+    return;
+  }
+  startMsg.hidden = true;
+  state.profile.name = name;
+  state.profile.num = num;
+  if (!state.startedAt) state.startedAt = Date.now();
+  go(2);
+  renderHeader();
+});
+
+/* =========================================================
+ * 화면 2 — 종류 고르기 & 입력
+ * ========================================================= */
+
+/** 복수형에서 a/an 단수형을 짐작 (학생이 직접 고칠 수 있음) */
+function guessSingular(plural) {
+  const p = clean(plural);
+  if (!p) return '';
+  const words = p.split(' ');
+  let last = words[words.length - 1];
+  if (/(movie|cookie|zombie|pie|brownie|rookie|selfie)s$/i.test(last)) last = last.slice(0, -1);
+  else if (/ies$/i.test(last)) last = last.replace(/ies$/i, 'y');
+  else if (/[^s]s$/i.test(last)) last = last.slice(0, -1);
+  words[words.length - 1] = last;
+  const phrase = words.join(' ');
+  return (/^[aeiou]/i.test(phrase) ? 'an ' : 'a ') + phrase;
+}
+
+/** 선택 결과 → 문장에 들어갈 값 */
+function resolved(key) {
+  const cat = CATS[key], c = state.choices[key];
+  if (c.pick === 'own') {
+    return { kind: clean(c.ownPlural), single: cat.useSome ? '' : clean(c.ownSingular), rec: clean(c.rec), adj: clean(c.adj) };
+  }
+  const item = c.pick == null ? null : cat.items[c.pick];
+  return { kind: item ? item.plural : '', single: item && item.single ? item.single : '', rec: clean(c.rec), adj: clean(c.adj) };
+}
+
+function validate(key) {
+  const cat = CATS[key], c = state.choices[key];
+  const miss = [];
+  let korean = false;
+  if (c.pick == null) miss.push('좋아하는 종류를 골라 주세요.');
+  else if (c.pick === 'own') {
+    if (!clean(c.ownPlural)) miss.push('좋아하는 종류를 영어로 써 주세요.');
+    if (HANGUL.test(c.ownPlural)) korean = true;
+    if (!cat.useSome) {
+      const s = clean(c.ownSingular);
+      if (!s) miss.push('하나를 말할 때의 모양(a/an + 단어)을 써 주세요.');
+      else if (!/^(a|an)\s+\S/i.test(s)) miss.push(`하나를 말할 때는 a 또는 an으로 시작해요. (예: ${cat.ownEx.single})`);
+      if (HANGUL.test(c.ownSingular)) korean = true;
+    }
+  }
+  if (!clean(c.rec)) miss.push(`${cat.recAsk}을 써 주세요.`);
+  if (HANGUL.test(c.rec)) korean = true;
+  if (!clean(c.adj)) miss.push('어떤 점이 좋은지(형용사) 골라 주세요.');
+  if (HANGUL.test(c.adj)) korean = true;
+  if (korean) miss.push('영어 칸에 한글이 들어 있어요. 영어로 써 주세요.');
+  return miss;
+}
+
+function renderStep() {
+  const key = CAT_KEYS[state.step];
+  const cat = CATS[key];
+  const c = state.choices[key];
+
+  // 탭
+  const tabs = $('#tabs');
+  tabs.innerHTML = '';
+  CAT_KEYS.forEach((k, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab' + (i === state.step ? ' on' : '');
+    b.dataset.key = k;
+    b.textContent = `${CATS[k].emoji} ${CATS[k].label} · ${CATS[k].ko}`;
+    b.addEventListener('click', () => { state.step = i; save(); renderStep(); });
+    tabs.append(b);
+  });
+
+  // 입력 패널 (학생 입력값은 innerHTML에 넣지 않고 .value로만 채움)
+  const items = cat.items.map((it, i) => `
+    <label class="opt"><input type="radio" name="pick" value="${i}">
+      <span><span class="en">${it.plural}</span>${it.single ? `<small class="en">${it.single}</small>` : ''}</span>
+    </label>`).join('');
+  const ownFields = cat.useSome
+    ? `<label class="field"><span>좋아하는 음식 종류 (영어)</span>
+         <input type="text" id="ownPlural" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.plural}"></label>`
+    : `<label class="field"><span>좋아하는 종류 — 여러 개를 말할 때 (-s)</span>
+         <input type="text" id="ownPlural" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.plural}"></label>
+       <label class="field"><span>하나를 말할 때 — a / an + 단어</span>
+         <input type="text" id="ownSingular" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.single}"></label>
+       <p class="sub">모음(a, e, i, o, u) 소리로 시작하면 <b>an</b>을 써요. 예: <span class="en">an action movie</span></p>`;
+
+  $('#panel').innerHTML = `
+    <div class="card">
+      <h2>${cat.emoji} ${cat.label} <small>${cat.ko}</small></h2>
+
+      <div class="q">
+        <div class="q-title"><span class="num">1</span> ${cat.ask}</div>
+        <div class="opts">
+          ${items}
+          <label class="opt"><input type="radio" name="pick" value="own">
+            <span>✏️ 직접 입력<small class="en">Your Own</small></span>
+          </label>
+        </div>
+        <div class="own" id="own" hidden>${ownFields}</div>
+      </div>
+
+      <div class="q">
+        <div class="q-title"><span class="num">2</span> ${cat.recAsk}</div>
+        <input type="text" id="rec" class="en" autocomplete="off" placeholder="영어로 써요">
+        <div class="chips">예: ${cat.hints.map(h => `<button type="button" class="chip en" data-hint="${h}">${h}</button>`).join('')}</div>
+      </div>
+
+      <div class="q">
+        <div class="q-title"><span class="num">3</span> 어떤 점이 좋나요? <span class="en" style="font-weight:500;color:var(--muted)">It's really ___.</span></div>
+        <div class="adjs">${cat.adjs.map(a => `<button type="button" class="adj en" data-adj="${a}">${a}</button>`).join('')}</div>
+        <input type="text" id="adjCustom" class="en" autocomplete="off" placeholder="다른 형용사를 직접 써도 돼요" style="max-width:320px">
+      </div>
+    </div>
+
+    <div class="card preview">
+      <h3>🗣️ 이렇게 대화하게 돼요 <small style="color:var(--muted);font-weight:500">(내가 추천하는 역할)</small></h3>
+      <div id="pv"></div>
+      <p class="tip">💡 영화·책은 <b class="en">a/an</b>, 음식은 <b class="en">some</b>을 써요.
+        <span class="en">Can you recommend <b>a</b> movie? / Can you recommend <b>some</b> food?</span></p>
+    </div>`;
+
+  const panel = $('#panel');
+  const ownPlural = $('#ownPlural', panel), ownSingular = $('#ownSingular', panel);
+  const recEl = $('#rec', panel), adjCustom = $('#adjCustom', panel);
+
+  // 값 채우기
+  $$('input[name=pick]', panel).forEach(r => { r.checked = String(c.pick) === r.value; });
+  ownPlural.value = c.ownPlural;
+  if (ownSingular) ownSingular.value = c.ownSingular;
+  recEl.value = c.rec;
+  adjCustom.value = cat.adjs.includes(c.adj) ? '' : c.adj;
+
+  // 이벤트
+  $$('input[name=pick]', panel).forEach(r => r.addEventListener('change', () => {
+    c.pick = r.value === 'own' ? 'own' : Number(r.value);
+    save();
+    updateStep();
+    if (c.pick === 'own' && !clean(c.ownPlural)) ownPlural.focus();
+  }));
+  ownPlural.addEventListener('input', () => {
+    c.ownPlural = ownPlural.value;
+    if (ownSingular && !c.singularTouched) {
+      c.ownSingular = guessSingular(ownPlural.value);
+      ownSingular.value = c.ownSingular;
+    }
+    save(); updateStep();
+  });
+  if (ownSingular) ownSingular.addEventListener('input', () => {
+    c.ownSingular = ownSingular.value;
+    c.singularTouched = ownSingular.value.trim() !== '';
+    save(); updateStep();
+  });
+  recEl.addEventListener('input', () => { c.rec = recEl.value; save(); updateStep(); });
+  $$('.chip', panel).forEach(b => b.addEventListener('click', () => {
+    recEl.value = c.rec = b.dataset.hint;
+    save(); updateStep();
+  }));
+  $$('.adj', panel).forEach(b => b.addEventListener('click', () => {
+    c.adj = b.dataset.adj;
+    adjCustom.value = '';
+    save(); updateStep();
+  }));
+  adjCustom.addEventListener('input', () => { c.adj = adjCustom.value; save(); updateStep(); });
+
+  updateStep();
+}
+
+/** 입력이 바뀔 때마다: 미리보기 · 검사 · 버튼 상태만 갱신 (입력 칸은 다시 그리지 않음) */
+function updateStep() {
+  const key = CAT_KEYS[state.step];
+  const cat = CATS[key];
+  const c = state.choices[key];
+  const panel = $('#panel');
+
+  $('#own', panel).hidden = c.pick !== 'own';
+  $$('.adj', panel).forEach(b => b.classList.toggle('on', b.dataset.adj === c.adj));
+  $$('.tab').forEach(t => t.classList.toggle('done', validate(t.dataset.key).length === 0));
+
+  // 미리보기
+  const r = resolved(key);
+  const slot = v => v ? `<span class="fill">${esc(v)}</span>` : '<span class="blank">?</span>';
+  const a2 = cat.useSome
+    ? `Can you recommend some ${slot(r.kind)} for me?`
+    : `Can you recommend ${slot(r.single)} for me?`;
+  const lines = [
+    ['them', `What kinds of ${key} do you like?`],
+    ['me', `I like ${slot(r.kind)}.`],
+    ['them', a2],
+    ['me', `Sure. I recommend ${slot(r.rec)}. It's really ${slot(r.adj)}.`],
+  ];
+  $('#pv', panel).innerHTML = lines.map(([who, text]) => `
+    <div class="line">
+      <span class="who ${who}">${who === 'me' ? '🎤 나' : '🔊 친구'}</span>
+      <span class="say en ${who}">${text}</span>
+    </div>`).join('');
+
+  // 검사
+  const miss = validate(key);
+  $('#missing').innerHTML = miss.map(m => `<li>${esc(m)}</li>`).join('');
+  const own = $('#ownSingular', panel);
+  if (own) own.classList.toggle('bad', c.pick === 'own' && !!clean(c.ownSingular) && !/^(a|an)\s+\S/i.test(clean(c.ownSingular)));
+
+  const last = state.step === CAT_KEYS.length - 1;
+  const nextBtn = $('#nextBtn');
+  if (last) {
+    const allOk = CAT_KEYS.every(k => validate(k).length === 0);
+    nextBtn.textContent = '롤플레이 시작 ▶';
+    nextBtn.disabled = !allOk;
+    if (miss.length === 0 && !allOk) {
+      const todo = CAT_KEYS.filter(k => validate(k).length).map(k => CATS[k].label).join(', ');
+      $('#missing').innerHTML = `<li>${esc(todo)} 입력이 아직 남았어요. 위 탭을 눌러 채워 주세요.</li>`;
+    }
+  } else {
+    const nk = CAT_KEYS[state.step + 1];
+    nextBtn.textContent = `다음: ${CATS[nk].emoji} ${CATS[nk].label} →`;
+    nextBtn.disabled = miss.length > 0;
+  }
+}
+
+$('#prevBtn').addEventListener('click', () => {
+  if (state.step > 0) { state.step--; save(); renderStep(); window.scrollTo(0, 0); }
+  else { go(1); renderHeader(); }
+});
+$('#nextBtn').addEventListener('click', () => {
+  if ($('#nextBtn').disabled) return;
+  if (state.step < CAT_KEYS.length - 1) {
+    state.step++;
+    save();
+    renderStep();
+    window.scrollTo(0, 0);
+  } else {
+    go(3);
+  }
+});
+
+/* =========================================================
+ * 화면 3 — 롤플레이
+ * ========================================================= */
+const MAX_TRIES = 3;
+const LEVELS = {
+  1: '🌱 1단계 · 문장 보고 말하기',
+  2: '🌿 2단계 · 빈칸 채우며 말하기',
+  3: '🌳 3단계 · 힌트만 보고 말하기',
+};
+const SELF_EVAL = [['😊', '잘했어요'], ['😐', '보통이에요'], ['😅', '어려웠어요']];
+
+function newRp() {
+  return { ci: 0, round: 1, li: 0, phase: 'intro', level: 1, records: {}, selfEval: {}, startedAt: null, finishedAt: null };
+}
+
+function partnerOf(key) {
+  const cat = CATS[key], p = cat.partner;
+  const item = cat.items.find(i => i.plural === p.kind);
+  return Object.assign({ single: item && item.single ? item.single : '' }, p);
+}
+
+/**
+ * 한 라운드의 대사 4개.
+ * 학생 대사: text(문장), tpl([빈칸] 표시), ko(한국어 힌트), frags(채점 조각), extras(채점 안 함, 회색 표시)
+ */
+function buildRound(key, round) {
+  const cat = CATS[key];
+  const a1 = `What kinds of ${key} do you like?`;
+  if (round === 1) {
+    const p = partnerOf(key);
+    const a2 = cat.useSome
+      ? {
+        text: `Can you recommend some ${p.kind} for me?`,
+        tpl: `Can you [recommend] [some] ${p.kind} for me?`,
+        ko: `친구가 좋아하는 음식(${p.kind})을 추천해 달라고 부탁하세요. (some 사용)`,
+        frags: ['can you recommend', 'some', 'for me'],
+        extras: [p.kind],
+      }
+      : {
+        text: `Can you recommend ${p.single} for me?`,
+        tpl: `Can you [recommend] ${p.single} for [me]?`,
+        ko: `친구가 좋아하는 종류(${p.kind}) 하나를 추천해 달라고 부탁하세요. (a/an 사용)`,
+        frags: ['can you recommend', 'for me'],
+        extras: [p.single.replace(/^an? /, '')],
+      };
+    return [
+      { id: 'A1', me: true, text: a1, tpl: `What kinds of [${key}] do you [like]?`, ko: cat.hintA1, frags: ['what kinds of', key, 'do you like'], extras: [] },
+      { id: 'B1', me: false, text: `I like ${p.kind}.` },
+      Object.assign({ id: 'A2', me: true }, a2),
+      { id: 'B2', me: false, text: `Sure. I recommend ${p.rec}. It's really ${p.adj}.` },
+    ];
+  }
+  const r = resolved(key);
+  const own = state.choices[key].pick === 'own';
+  const adjFixed = cat.adjs.includes(r.adj);
+  return [
+    { id: 'A1', me: false, text: a1 },
+    {
+      id: 'B1', me: true,
+      text: `I like ${r.kind}.`,
+      tpl: `I [like] ${r.kind}.`,
+      ko: `내가 좋아하는 종류를 말하세요. (${r.kind})`,
+      frags: own ? ['i like'] : ['i like', r.kind],
+      extras: own ? [r.kind] : [],
+    },
+    { id: 'A2', me: false, text: cat.useSome ? `Can you recommend some ${r.kind} for me?` : `Can you recommend ${r.single} for me?` },
+    {
+      id: 'B2', me: true,
+      text: `Sure. I recommend ${r.rec}. It's really ${r.adj}.`,
+      tpl: `Sure. I [recommend] ${r.rec}. It's [really] ${r.adj}.`,
+      ko: `추천하는 것과, 그것이 어떤지 말하세요. (${r.rec} · ${r.adj})`,
+      frags: adjFixed ? ['i recommend', "it's really", r.adj] : ['i recommend', "it's really"],
+      extras: adjFixed ? ['sure', r.rec] : ['sure', r.rec, r.adj],
+    },
+  ];
+}
+
+function current() {
+  const R = state.rp, key = CAT_KEYS[R.ci];
+  const lines = buildRound(key, R.round);
+  const line = lines[R.li];
+  return { R, key, lines, line, lk: `${key}_r${R.round}_${line.id}` };
+}
+const lineDone = rec => !!rec && (rec.passed || rec.needsPractice);
+
+/** 후보 3개 중 통과한 조각이 가장 많은 것으로 채점 */
+function scoreAlts(alts, line) {
+  let best = null;
+  alts.forEach(a => {
+    const frags = line.frags.map(f => ({ f, ok: fragmentScore(a.text, f) >= PASS_SCORE }));
+    const extras = line.extras.map(f => ({ f, ok: fragmentScore(a.text, f) >= 0.75 }));
+    const n = frags.filter(x => x.ok).length;
+    if (!best || n > best.n) best = { text: a.text, frags, extras, n, pass: n === frags.length };
+  });
+  return best;
+}
+
+function scaffoldHTML(line, level, peeked) {
+  if (level === 1 || peeked) return `<div class="target en">${esc(line.text)}</div>`;
+  if (level === 2) {
+    return `<div class="target en">${esc(line.tpl).replace(/\[([^\]]+)\]/g,
+      (m, w) => `<span class="gap" style="width:${Math.max(2.5, w.length * 0.62)}em"></span>`)}</div>`;
+  }
+  return `<div class="ko-hint">💬 ${esc(line.ko)}</div>`;
+}
+
+function renderRp() {
+  const R = state.rp;
+  PTT.active = null;
+  $('#rpIntro').hidden = R.phase !== 'intro';
+  $('#rpLine').hidden = R.phase !== 'line';
+  $('#rpSelf').hidden = R.phase !== 'self';
+  if (R.phase === 'done') return;
+  const key = CAT_KEYS[R.ci], cat = CATS[key];
+  const pos = R.phase === 'self' ? 8 : (R.round - 1) * 4 + (R.phase === 'line' ? R.li : 0);
+  $('#rpProg').textContent = `${cat.emoji} ${cat.label} ${R.ci + 1}/${CAT_KEYS.length} · `
+    + (R.phase === 'self' ? '자기평가' : `대사 ${pos + 1}/8`);
+  $('#rpBar i').style.width = ((R.ci * 8 + pos) / (CAT_KEYS.length * 8) * 100) + '%';
+  if (R.phase === 'intro') renderIntro(key);
+  else if (R.phase === 'line') renderLine();
+  else renderSelf(key);
+}
+
+function renderIntro(key) {
+  const R = state.rp, cat = CATS[key], r = resolved(key);
+  const first = R.ci === 0 && R.round === 1 && Object.keys(R.records).length === 0;
+  const body = R.round === 1
+    ? `<p>이번엔 내가 <b>A</b> — <b>추천을 부탁하는 사람</b>이에요.</p>
+       <p class="sub">${cat.hintA1.replace('물어보세요.', '묻고,')} 추천해 달라고 부탁해요.</p>`
+    : `<p>이번엔 내가 <b>B</b> — <b>추천하는 사람</b>이에요.</p>
+       <p class="sub">내가 정한 것: <span class="en"><b>${esc(r.kind)}</b> · <b>${esc(r.rec)}</b> · <b>${esc(r.adj)}</b></span></p>`;
+  const how = state.settings.mode === 'hold' ? '<b>누른 채로</b> 말하고, 다 말하면 떼세요' : '<b>한 번</b> 누르고 말하세요';
+  $('#rpIntro').innerHTML = `
+    <h2>${cat.emoji} ${cat.label} — 라운드 ${R.round}</h2>
+    ${body}
+    ${first ? `<p class="tip">🎤 내 차례가 되면 <b>스페이스바</b>를 ${how}. 친구(컴퓨터)가 말하는 동안에는 마이크가 잠겨요.</p>` : ''}
+    <div class="nav" style="margin-top:16px">
+      ${first ? '<button type="button" class="btn" id="rpBack">← 입력 고치기</button>' : '<span></span>'}
+      <button type="button" class="btn primary big" id="rpGo">시작 ▶</button>
+    </div>`;
+  $('#rpGo').addEventListener('click', () => {
+    if (!R.startedAt) R.startedAt = Date.now();
+    R.phase = 'line';
+    R.li = 0;
+    save();
+    renderRp();
+  });
+  if (first) $('#rpBack').addEventListener('click', () => { state.step = 0; go(2); });
+}
+
+let playingKey = null;
+/** 상대 대사 재생 → 끝나면 다음 대사로 */
+async function playPartner(lk, text) {
+  playingKey = lk;
+  PTT.active = null;
+  const bubble = $('#rpLog .bubble.them[data-cur]');
+  if (bubble) {
+    bubble.classList.add('speaking');
+    $('.replay', bubble).textContent = '🔊 다시 듣기';
+  }
+  await TTS.speak(text);
+  await new Promise(r => setTimeout(r, 400));
+  playingKey = null;
+  if (state.screen === 3 && state.rp.phase === 'line' && current().lk === lk) advanceLine();
+}
+
+function renderLine() {
+  const { R, key, lines, line, lk } = current();
+  $('#rpRound').textContent = `라운드 ${R.round} · 나는 ${R.round === 1 ? 'A (추천을 부탁하는 사람)' : 'B (추천하는 사람)'}`;
+
+  // 새로고침 직후에는 브라우저가 자동 재생을 막으므로 [듣기] 버튼을 누르게 함
+  const needTap = !line.me && playingKey !== lk && navigator.userActivation && !navigator.userActivation.hasBeenActive;
+
+  $('#rpLog').innerHTML = lines.slice(0, R.li + 1).map((l, i) => {
+    const cur = i === R.li;
+    if (!l.me) {
+      return `<div class="bubble them${cur && playingKey === lk ? ' speaking' : ''}"${cur ? ' data-cur="1"' : ''}>
+        <span class="who2">🔊 친구</span><span class="en">${esc(l.text)}</span>
+        <button type="button" class="replay" data-say="${esc(l.text)}">${cur && needTap ? '▶ 듣기' : '🔊 다시 듣기'}</button>
+      </div>`;
+    }
+    if (cur) return '';
+    const rec = R.records[`${key}_r${R.round}_${l.id}`];
+    const bad = rec && rec.needsPractice;
+    return `<div class="bubble me${bad ? ' practice' : ''}">
+      <span class="en">${esc(l.text)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">🎤 나</span>
+    </div>`;
+  }).join('');
+  $$('#rpLog .replay').forEach(b => b.addEventListener('click', () => {
+    if (b.parentElement.dataset.cur) { if (playingKey !== lk) playPartner(lk, line.text); }
+    else TTS.speak(b.dataset.say);
+  }));
+
+  $('#rpTurn').hidden = !line.me;
+  if (!line.me) {
+    if (!needTap && playingKey !== lk) playPartner(lk, line.text);
+    return;
+  }
+
+  let rec = R.records[lk];
+  if (!rec) {
+    rec = R.records[lk] = { attempts: 0, passed: false, needsPractice: false, level: R.level, peeked: false, dropped: false, heard: '', frags: [], extras: [] };
+    save();
+  }
+  const done = lineDone(rec);
+
+  $('#rpLevel').textContent = LEVELS[rec.level];
+  $('#rpTry').textContent = done ? `시도 ${rec.attempts}번` : `시도 ${rec.attempts + 1} / ${MAX_TRIES}`;
+  $('#rpScaffold').innerHTML = scaffoldHTML(line, done ? 1 : rec.level, rec.peeked);
+  $('#rpPeek').hidden = done || rec.level === 1 || rec.peeked;
+  $('#rpSpeak').hidden = done;
+  $('#rpMicBtn').hidden = Mic.ready;
+  $('#rpPtt').hidden = !Mic.ready;
+  $('#rpNextWrap').hidden = !done;
+  $('#rpErr').hidden = true;
+
+  const res = $('#rpResult');
+  if (!rec.attempts) {
+    res.hidden = true;
+  } else {
+    const chips = rec.frags.map(x => `<span class="frag en ${x.ok ? 'ok' : ''}">${x.ok ? '✅' : '⬜'} ${esc(x.f)}</span>`).join('')
+      + rec.extras.map(x => `<span class="frag en extra" title="채점하지 않아요">${x.ok ? '●' : '○'} ${esc(x.f)}</span>`).join('');
+    let type, note;
+    if (rec.passed) {
+      type = 'ok';
+      note = '✅ 통과!' + (rec.attempts === 1 && !rec.peeked && rec.level < 3 ? ' 다음 대사는 도움을 한 단계 줄여 볼게요.' : '');
+    } else if (rec.needsPractice) {
+      type = 'warn';
+      note = '🟨 ‘다시 연습 필요’로 기록했어요. 괜찮아요, 다음 대사로 가요!';
+    } else {
+      type = 'err';
+      note = `⬜ 표시된 부분을 살려서 다시 말해 보세요. (남은 기회 ${MAX_TRIES - rec.attempts}번)`
+        + (rec.dropped ? ' 도움을 한 단계 늘렸어요.' : '');
+    }
+    showMsg(res, type, `<div>이렇게 들렸어요:</div><div class="heard en">“${esc(rec.heard)}”</div>
+      <div class="frags">${chips}</div><div style="margin-top:8px">${note}</div>`);
+  }
+
+  if (!done && Mic.ready) PTT.active = rpPtt;
+  rpPtt.render();
+}
+
+function advanceLine() {
+  const R = state.rp;
+  R.li++;
+  if (R.li >= 4) {
+    R.li = 0;
+    if (R.round === 1) { R.round = 2; R.phase = 'intro'; }
+    else R.phase = 'self';
+  }
+  save();
+  renderRp();
+  if (R.phase === 'line') {
+    const target = current().line.me ? $('#rpTurn') : $('#rpLog').lastElementChild;
+    if (target) target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  } else {
+    window.scrollTo(0, 0);
+  }
+}
+
+function renderSelf(key) {
+  const R = state.rp, cat = CATS[key];
+  let mine = 0, passed = 0;
+  [1, 2].forEach(round => buildRound(key, round).filter(l => l.me).forEach(l => {
+    mine++;
+    const rec = R.records[`${key}_r${round}_${l.id}`];
+    if (rec && rec.passed) passed++;
+  }));
+  $('#rpSelf').innerHTML = `
+    <h2>${cat.emoji} ${cat.label} 끝! <small>통과 ${passed}/${mine}</small></h2>
+    <p style="margin:0">${cat.ko} 대화를 해 보니 어땠나요? 스스로 골라 보세요.</p>
+    <div class="selfs">${SELF_EVAL.map(([e, t]) =>
+      `<button type="button" class="selfbtn" data-v="${e}"><span>${e}</span>${t}</button>`).join('')}</div>`;
+  $$('#rpSelf .selfbtn').forEach(b => b.addEventListener('click', () => {
+    R.selfEval[key] = b.dataset.v;
+    if (R.ci < CAT_KEYS.length - 1) {
+      R.ci++; R.round = 1; R.li = 0; R.phase = 'intro';
+      save();
+      renderRp();
+      window.scrollTo(0, 0);
+    } else {
+      R.phase = 'done';
+      R.finishedAt = Date.now();
+      go(4);
+    }
+  }));
+}
+
+const rpPtt = PTT.create($('#rpPtt'), {
+  onStart() { $('#rpErr').hidden = true; },
+  onResult(alts) {
+    if (state.screen !== 3 || state.rp.phase !== 'line') return;
+    const { R, line, lk } = current();
+    const rec = R.records[lk];
+    if (!line.me || !rec || lineDone(rec)) return;
+    const s = scoreAlts(alts, line);
+    rec.attempts++;
+    rec.heard = s.text;
+    rec.frags = s.frags;
+    rec.extras = s.extras;
+    rec.dropped = false;
+    if (s.pass) {
+      rec.passed = true;
+      // 한 번에 통과(문장 보기 없이) → 다음 대사는 도움 한 단계 줄이기
+      R.level = rec.attempts === 1 && !rec.peeked ? Math.min(3, rec.level + 1) : rec.level;
+    } else if (rec.attempts >= MAX_TRIES) {
+      rec.needsPractice = true;
+      R.level = Math.max(1, rec.level - 1);
+    } else {
+      // 실패 → 도움 한 단계 늘려서 다시 시도
+      if (rec.level > 1) { rec.level--; rec.dropped = true; }
+      R.level = rec.level;
+    }
+    save();
+    renderRp();
+  },
+  onError(html) { showMsg($('#rpErr'), 'err', html); },
+});
+
+$('#rpPeek').addEventListener('click', () => {
+  const { R, lk } = current();
+  if (R.records[lk]) { R.records[lk].peeked = true; save(); renderRp(); }
+});
+$('#rpNext').addEventListener('click', () => {
+  const { R, lk } = current();
+  if (lineDone(R.records[lk])) advanceLine();
+});
+$('#rpMicBtn').addEventListener('click', async () => {
+  const r = await Mic.init();
+  if (r.ok) renderRp();
+  else showMsg($('#rpErr'), 'err', r.msg);
+});
+// Enter = [시작] / [다음]
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || state.screen !== 3 || isTyping(e.target) || e.target.tagName === 'BUTTON') return;
+  let btn = null;
+  if (!$('#rpIntro').hidden) btn = $('#rpGo');
+  else if (!$('#rpLine').hidden && !$('#rpTurn').hidden && !$('#rpNextWrap').hidden) btn = $('#rpNext');
+  if (btn) { e.preventDefault(); btn.click(); }
+});
+
+/* =========================================================
+ * 화면 4 — 요약 (결과 카드는 다음 단계에서 개발)
+ * ========================================================= */
+function summary() {
+  const R = state.rp;
+  let lines = 0, passed = 0, attempts = 0;
+  CAT_KEYS.forEach(k => [1, 2].forEach(round => buildRound(k, round).filter(l => l.me).forEach(l => {
+    const rec = R.records[`${k}_r${round}_${l.id}`];
+    lines++;
+    if (rec) { attempts += rec.attempts; if (rec.passed) passed++; }
+  })));
+  const start = state.startedAt || R.startedAt || Date.now();
+  return {
+    lines, passed,
+    avgAttempts: lines ? attempts / lines : 0,
+    startLevel: 1, endLevel: R.level,
+    selfEval: CAT_KEYS.map(k => R.selfEval[k] || '-'),
+    minutes: Math.max(1, Math.round(((R.finishedAt || Date.now()) - start) / 60000)),
+  };
+}
+function renderScreen4() {
+  const s = summary();
+  $('#s4summary').innerHTML = `
+    <ul>
+      <li>통과한 대사: <b>${s.passed}/${s.lines}</b></li>
+      <li>대사당 평균 시도: <b>${s.avgAttempts.toFixed(1)}번</b></li>
+      <li>도움 단계: <b>${s.startLevel}단계 → ${s.endLevel}단계</b></li>
+      <li>자기평가: <b>${s.selfEval.join(' ')}</b></li>
+      <li>활동 시간: <b>${s.minutes}분</b></li>
+    </ul>`;
+}
+
+/* =========================================================
+ * 시작
+ * ========================================================= */
+renderBanners();
+let startScreen = state.screen;
+if (startScreen >= 2 && !(state.profile.name && state.profile.num)) startScreen = 1;
+if (startScreen >= 3 && !CAT_KEYS.every(k => validate(k).length === 0)) startScreen = 2;
+if (startScreen === 4 && !(state.rp && state.rp.phase === 'done')) startScreen = 3;
+go(startScreen);
+renderHeader();
+
+})();
+</script>
+</body>
+</html>
