@@ -153,6 +153,37 @@
   .start-area { text-align: center; margin-top: 8px; }
   .start-area .msg { text-align: left; }
 
+  /* ---------- 화면 5 ---------- */
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .steps li {
+    display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+    border: 1.5px solid var(--line); border-radius: 12px; background: #fff;
+  }
+  .steps li.done { border-color: #9ad8ae; background: var(--green-soft); }
+  .steps .num {
+    flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--primary-soft); color: var(--primary); font-weight: 800;
+  }
+  .steps li.done .num { background: var(--green); color: #fff; }
+  .steps .body { flex: 1; min-width: 0; }
+  .steps .body b.t { display: block; font-size: 17px; }
+  .steps .body .sub { margin-top: 4px; }
+  .steps .body > .btn { margin-top: 8px; text-decoration: none; }
+  .steps .check {
+    flex: none; display: flex; align-items: center; gap: 6px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; padding-top: 4px;
+  }
+  .steps .check input { width: 20px; height: 20px; accent-color: var(--green); margin: 0; }
+  .copy-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .copy-row code {
+    padding: 8px 12px; border-radius: 8px; background: #f1f3f8; font-size: 17px; font-weight: 700;
+    font-family: inherit; word-break: break-all;
+  }
+  .nav-row { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
+  .done-box { text-align: center; padding: 26px 20px; }
+  .done-box .big-emoji { font-size: 56px; line-height: 1.2; }
+  .done-box .btn { text-decoration: none; }
+
   /* ---------- 화면 2 ---------- */
   .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .tab {
@@ -414,6 +445,32 @@
       <p class="sub" id="cardFile"></p>
       <div id="saveMsg" hidden></div>
     </div>
+    <div class="nav-row" style="justify-content:flex-end">
+      <button type="button" class="btn primary big" id="toSubmit">다음: 패들렛에 올리기 ▶</button>
+    </div>
+  </section>
+
+  <!-- ======================= 화면 5: 패들렛 제출 ======================= -->
+  <section class="screen" data-screen="5" hidden>
+    <h1>📮 패들렛에 올려요</h1>
+    <p class="lead">한 단계씩 따라 하고, 끝낸 단계에는 <b>했어요</b>에 체크해요.</p>
+    <div id="padletMissing" hidden></div>
+    <div class="card">
+      <ol class="steps" id="submitSteps"></ol>
+    </div>
+    <div class="start-area">
+      <button type="button" class="btn primary big" id="submitDone" disabled>🎉 제출 완료!</button>
+      <p class="sub" id="submitLeft"></p>
+    </div>
+    <div class="card done-box" id="submitFinish" hidden>
+      <div class="big-emoji">🏆</div>
+      <h2 style="justify-content:center">제출까지 모두 끝났어요!</h2>
+      <p class="sub">패들렛에서 친구들의 카드도 구경하고, 마음에 드는 카드에 댓글을 남겨 보세요.</p>
+      <p style="margin-top:12px"><a class="btn" id="padletView" target="_blank" rel="noopener">👀 패들렛 구경하기</a></p>
+    </div>
+    <div class="nav-row">
+      <button type="button" class="btn" id="backToCard">◀ 결과 카드로 돌아가기</button>
+    </div>
   </section>
 </main>
 
@@ -429,6 +486,16 @@ const STORE_KEY = 'roleplay_recommend_v1';
 const params = new URLSearchParams(location.search);
 const CLASS_NAME = (params.get('class') || '').trim();
 const CAT_COUNT = params.get('cat') === '2' ? 2 : 3;
+
+/*
+ * 제출할 패들렛 주소. 다른 반은 링크 뒤에 &padlet=주소 를 붙이면 바뀐다.
+ * (padlet.com 주소만 받음)
+ */
+const PADLET_DEFAULT = 'https://padlet.com/insuenglish/2-a-6-role-play-s0241xw19s0rvbnew7me';
+const PADLET_URL = (() => {
+  const u = (params.get('padlet') || PADLET_DEFAULT).trim();
+  return /^https:\/\/([a-z0-9-]+\.)*padlet\.(com|org)\//i.test(u) ? u : '';
+})();
 
 /*
  * 종류(장르)마다 그 장르에 맞는 작품·음식만 고를 수 있게 한다.
@@ -577,6 +644,7 @@ function defaultState() {
     choices,
     startedAt: null,
     rp: null, // 롤플레이 진행 상황 (화면 3)
+    submit: { saved: false, checks: {}, done: false }, // 결과 카드 저장 · 패들렛 제출 (화면 4-5)
   };
 }
 function loadState() {
@@ -597,6 +665,11 @@ function loadState() {
     base.micTested = !!saved.micTested;
     base.startedAt = saved.startedAt || null;
     if (saved.rp && saved.rp.ci < CAT_KEYS.length) base.rp = saved.rp;
+    if (saved.submit) {
+      base.submit.saved = !!saved.submit.saved;
+      base.submit.done = !!saved.submit.done;
+      Object.assign(base.submit.checks, saved.submit.checks);
+    }
   } catch (e) { /* 저장된 값이 깨졌으면 새로 시작 */ }
   return base;
 }
@@ -970,6 +1043,7 @@ function go(n) {
     renderRp();
   }
   if (n === 4) renderScreen4();
+  if (n === 5) renderScreen5();
   window.scrollTo(0, 0);
 }
 
@@ -1965,6 +2039,10 @@ $('#saveCard').addEventListener('click', () => {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
+      state.submit.saved = true;
+      state.submit.checks.save = true;
+      save();
+      if (state.screen === 5) renderScreen5();
       showMsg(msg, 'ok', `✅ 저장했어요! <b>${esc(cardFileName())}</b><br>크롬북 <b>파일 앱 → 다운로드</b> 폴더에 있어요. 이 파일을 패들렛에 올려요.`);
     }, 'image/png');
   } catch (e) {
@@ -1973,13 +2051,112 @@ $('#saveCard').addEventListener('click', () => {
 });
 
 /* =========================================================
+ * 화면 5: 패들렛 제출
+ * ========================================================= */
+/** 패들렛 글 제목: 학급 번호 이름 (예: 2-3 07번 김민준) */
+function postTitle() {
+  return [CLASS_NAME, `${two(state.profile.num)}번`, String(state.profile.name).trim()].filter(Boolean).join(' ');
+}
+
+function submitSteps() {
+  return [
+    { id: 'save', t: '결과 카드 이미지를 저장해요',
+      d: state.submit.saved
+        ? `저장한 파일: <b>${esc(cardFileName())}</b> (파일 앱 → 다운로드)`
+        : '아직 저장하지 않았다면 아래 버튼을 눌러요. 저장이 안 되면 결과 카드 화면을 캡처해요.',
+      extra: '<button type="button" class="btn" data-act="save">🖼️ 이미지로 저장</button>' },
+    { id: 'open', t: '패들렛을 열어요',
+      d: '새 탭에서 우리 반 패들렛이 열려요. 이 앱 탭은 닫지 마세요.',
+      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">📌 패들렛 열기</a>' : '' },
+    { id: 'plus', t: '오른쪽 아래 <b>＋</b> 버튼을 눌러요',
+      d: '동그란 ＋ 버튼이에요. 새 게시물 칸이 열려요.' },
+    { id: 'title', t: '제목에 내 이름을 적어요',
+      d: '아래처럼 적어요. <b>복사</b>를 누르고 제목 칸에 <kbd>Ctrl</kbd> + <kbd>V</kbd> 로 붙여 넣어도 돼요.',
+      extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">📋 복사</button></div>` },
+    { id: 'upload', t: '결과 카드 이미지를 올려요',
+      d: '📎 <b>업로드</b> 버튼 → <b>파일 앱의 다운로드 폴더</b>에서 내 파일을 골라요. 이미지가 보일 때까지 기다려요.' },
+    { id: 'publish', t: '<b>게시</b> 버튼을 눌러요',
+      d: '게시물 칸의 <b>게시(Publish)</b> 버튼을 눌러요.' },
+    { id: 'check', t: '패들렛에 내 카드가 보이는지 확인해요',
+      d: '내 이름과 이미지가 잘 보이면 성공! 잘못 올렸다면 내 게시물의 <b>⋯</b> 메뉴에서 고칠 수 있어요.' },
+  ];
+}
+
+function renderScreen5() {
+  const miss = $('#padletMissing');
+  miss.hidden = !!PADLET_URL;
+  if (!PADLET_URL) miss.innerHTML = '<div class="banner warn">📌 패들렛 주소가 설정되지 않았어요. <b>선생님이 알려 준 패들렛</b>을 직접 열어서 올려 주세요.</div>';
+  const checks = state.submit.checks;
+  const steps = submitSteps();
+  $('#submitSteps').innerHTML = steps.map((st, i) => `
+    <li class="${checks[st.id] ? 'done' : ''}" data-id="${st.id}">
+      <span class="num">${checks[st.id] ? '✓' : i + 1}</span>
+      <div class="body">
+        <b class="t">${st.t}</b>
+        <p class="sub">${st.d}</p>
+        ${st.extra || ''}
+      </div>
+      <label class="check"><input type="checkbox" ${checks[st.id] ? 'checked' : ''}> 했어요</label>
+    </li>`).join('');
+  $$('#submitSteps a[data-act="open"], #padletView').forEach(a => { a.href = PADLET_URL || '#'; });
+  $('#padletView').hidden = !PADLET_URL;
+
+  const left = steps.filter(st => !checks[st.id]).length;
+  const done = state.submit.done;
+  $('#submitDone').disabled = left > 0;
+  $('#submitDone').hidden = done;
+  $('#submitLeft').hidden = done;
+  $('#submitLeft').textContent = left > 0 ? `남은 단계: ${left}개` : '모든 단계를 끝냈어요. 제출 완료를 눌러요!';
+  $('#submitFinish').hidden = !done;
+}
+
+$('#submitSteps').addEventListener('change', e => {
+  const li = e.target.closest('li[data-id]');
+  if (!li) return;
+  state.submit.checks[li.dataset.id] = e.target.checked;
+  if (!e.target.checked) state.submit.done = false;
+  save();
+  renderScreen5();
+});
+
+$('#submitSteps').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (!act) return;
+  if (act.dataset.act === 'save') {
+    drawCard(); // 화면 4를 거치지 않고 왔을 때도 최신 카드로 저장
+    $('#saveCard').click();
+  } else if (act.dataset.act === 'open') {
+    state.submit.checks.open = true;
+    save();
+    setTimeout(renderScreen5, 0); // 링크가 먼저 열리도록
+  } else if (act.dataset.act === 'copy') {
+    const reset = t => { act.textContent = t; setTimeout(() => { act.textContent = '📋 복사'; }, 1800); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(postTitle()).then(() => reset('✅ 복사했어요'), () => reset('직접 적어 주세요'));
+    } else {
+      reset('직접 적어 주세요');
+    }
+  }
+});
+
+$('#submitDone').addEventListener('click', () => {
+  state.submit.done = true;
+  save();
+  renderScreen5();
+  $('#submitFinish').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+$('#toSubmit').addEventListener('click', () => go(5));
+$('#backToCard').addEventListener('click', () => go(4));
+
+/* =========================================================
  * 시작
  * ========================================================= */
 renderBanners();
 let startScreen = state.screen;
 if (startScreen >= 2 && !(state.profile.name && state.profile.num)) startScreen = 1;
 if (startScreen >= 3 && !CAT_KEYS.every(k => validate(k).length === 0)) startScreen = 2;
-if (startScreen === 4 && !(state.rp && state.rp.phase === 'done')) startScreen = 3;
+if (startScreen >= 4 && !(state.rp && state.rp.phase === 'done')) startScreen = 3;
 go(startScreen);
 renderHeader();
 
