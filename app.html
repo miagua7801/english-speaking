@@ -206,6 +206,9 @@
 
   .msg.warn { background: var(--yellow-soft); color: #6b4d00; }
 
+  /* ---------- 화면 4 ---------- */
+  .result-card { display: block; width: 100%; height: auto; border-radius: 10px; }
+
   /* ---------- 화면 3 ---------- */
   .rp-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
   .rp-prog { font-weight: 700; }
@@ -399,12 +402,17 @@
     <div class="card" id="rpSelf" hidden></div>
   </section>
 
-  <!-- ======================= 화면 4: 결과 (다음 단계에서 개발) ======================= -->
+  <!-- ======================= 화면 4: 결과 카드 ======================= -->
   <section class="screen" data-screen="4" hidden>
     <h1>🎉 모두 끝났어요!</h1>
-    <div class="card">
-      <p style="margin-top:0">🚧 결과 카드(이미지 저장)는 다음 단계에서 만들 예정이에요.</p>
-      <div id="s4summary"></div>
+    <p class="lead">결과 카드를 이미지로 저장해서 패들렛에 올려요.</p>
+    <div class="card" style="padding:12px">
+      <canvas id="cardCanvas" class="result-card" aria-label="롤플레이 결과 카드"></canvas>
+    </div>
+    <div class="start-area">
+      <button type="button" class="btn primary big" id="saveCard">🖼️ 이미지로 저장</button>
+      <p class="sub" id="cardFile"></p>
+      <div id="saveMsg" hidden></div>
     </div>
   </section>
 </main>
@@ -1682,7 +1690,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* =========================================================
- * 화면 4 — 요약 (결과 카드는 다음 단계에서 개발)
+ * 화면 4 — 결과 카드 (canvas로 직접 그려서 PNG 저장)
  * ========================================================= */
 function summary() {
   const R = state.rp;
@@ -1701,17 +1709,268 @@ function summary() {
     minutes: Math.max(1, Math.round(((R.finishedAt || Date.now()) - start) / 60000)),
   };
 }
-function renderScreen4() {
-  const s = summary();
-  $('#s4summary').innerHTML = `
-    <ul>
-      <li>통과한 대사: <b>${s.passed}/${s.lines}</b></li>
-      <li>대사당 평균 시도: <b>${s.avgAttempts.toFixed(1)}번</b></li>
-      <li>도움 단계: <b>${s.startLevel}단계 → ${s.endLevel}단계</b></li>
-      <li>자기평가: <b>${s.selfEval.join(' ')}</b></li>
-      <li>활동 시간: <b>${s.minutes}분</b></li>
-    </ul>`;
+
+/** 카드에 들어갈 내용 모으기 */
+function cardData() {
+  const R = state.rp;
+  const cats = CAT_KEYS.map(k => {
+    const r = resolved(k);
+    const title = titlesOf(genreOf(k)).find(t => t.en === r.rec);
+    const [A, B] = [1, 2].map(round => buildRound(k, round).filter(l => l.me).map(l => {
+      const rec = R.records[`${k}_r${round}_${l.id}`];
+      return {
+        id: l.id, text: l.text,
+        attempts: rec ? rec.attempts : 0,
+        status: rec && rec.passed ? 'pass' : rec && rec.needsPractice ? 'practice' : 'none',
+      };
+    }));
+    return {
+      cat: CATS[k], kind: r.kind, adj: r.adj,
+      rec: title && title.ko ? `${r.rec} (${title.ko})` : r.rec,
+      A, B, self: R.selfEval[k] || '-',
+    };
+  });
+  let most = null;
+  cats.forEach(c => [...c.A, ...c.B].forEach(l => { if (!most || l.attempts > most.attempts) most = l; }));
+  const date = new Date(R.finishedAt || Date.now());
+  return { s: summary(), cats, most, date };
 }
+
+const CARD_W = 1080, CARD_PAD = 48;
+const CARD_FONT = '"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+const CC = {
+  ink: '#1f2430', muted: '#6b7280', line: '#e3e7ef', soft: '#f4f6fb', primary: '#3563e9',
+  green: '#16a34a', greenSoft: '#e7f7ec', yellow: '#c58a00', yellowSoft: '#fff4cc', graySoft: '#f3f4f6',
+};
+const STATUS = {
+  pass: { bg: CC.greenSoft, border: '#9ad8ae', color: CC.green, label: '통과' },
+  practice: { bg: CC.yellowSoft, border: '#f0cf5a', color: CC.yellow, label: '다시 연습' },
+  none: { bg: CC.graySoft, border: CC.line, color: CC.muted, label: '기록 없음' },
+};
+
+function cardFont(ctx, size, weight = 500) { ctx.font = `${weight} ${size}px ${CARD_FONT}`; }
+function roundBox(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+}
+function wrapText(ctx, text, maxW) {
+  const lines = [];
+  let line = '';
+  String(text).split(' ').forEach(word => {
+    const t = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(t).width > maxW) { lines.push(line); line = word; } else line = t;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+function two(n) { return String(n).padStart(2, '0'); }
+
+/** 카드를 그리고 전체 높이를 돌려줌 (높이 측정용으로 한 번, 실제로 한 번 호출) */
+function paintCard(ctx, d) {
+  const W = CARD_W, X = CARD_PAD, IW = W - CARD_PAD * 2;
+  const { s } = d;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, ctx.canvas.height);
+
+  // 머리말: 이름 · 번호 · 날짜
+  const HB = 160;
+  ctx.fillStyle = CC.primary;
+  ctx.fillRect(0, 0, W, HB);
+  ctx.fillStyle = 'rgba(255,255,255,.8)';
+  cardFont(ctx, 23, 600);
+  ctx.fillText('중2 영어 · Check and Talk', X, 34);
+  ctx.fillStyle = '#fff';
+  cardFont(ctx, 42, 800);
+  ctx.fillText('추천 요청 롤플레이 결과', X, 70);
+  ctx.textAlign = 'right';
+  cardFont(ctx, 30, 700);
+  ctx.fillText(`${state.profile.num}번 ${state.profile.name}`, W - X, 40);
+  cardFont(ctx, 23, 500);
+  const dateStr = `${d.date.getFullYear()}.${two(d.date.getMonth() + 1)}.${two(d.date.getDate())}`;
+  ctx.fillText(CLASS_NAME ? `${CLASS_NAME} · ${dateStr}` : dateStr, W - X, 86);
+  ctx.textAlign = 'left';
+  let y = HB + 32;
+
+  // 요약 4칸
+  const boxes = [
+    ['통과한 대사', `${s.passed} / ${s.lines}`],
+    ['대사당 평균 시도', `${s.avgAttempts.toFixed(1)}번`],
+    ['도움 단계', `${s.startLevel} → ${s.endLevel}단계`],
+    ['자기평가', s.selfEval.join(' ')],
+  ];
+  const gap = 16, bw = (IW - gap * 3) / 4, bh = 124;
+  boxes.forEach(([label, value], i) => {
+    const bx = X + i * (bw + gap);
+    roundBox(ctx, bx, y, bw, bh, 16, CC.soft);
+    ctx.fillStyle = CC.muted;
+    cardFont(ctx, 21, 600);
+    ctx.fillText(label, bx + 20, y + 20);
+    ctx.fillStyle = CC.ink;
+    cardFont(ctx, 36, 800);
+    ctx.fillText(value, bx + 20, y + 58);
+  });
+  y += bh + 32;
+
+  // 카테고리별 표
+  const P = 24, colGap = 20, colW = (IW - P * 2 - colGap) / 2, LH = 30;
+  d.cats.forEach(c => {
+    // 먼저 칸 높이 계산
+    cardFont(ctx, 22, 500);
+    const entry = l => ({ ...l, lines: wrapText(ctx, l.text, colW - 32) });
+    const A = c.A.map(entry), B = c.B.map(entry);
+    const eh = e => 16 + 30 + e.lines.length * LH + 14;
+    const rows = [0, 1].map(i => Math.max(eh(A[i]), eh(B[i])));
+    const blockH = P + 42 + 12 + 34 * 2 + 18 + 32 + rows[0] + 12 + rows[1] + P;
+
+    roundBox(ctx, X, y, IW, blockH, 18, '#fbfcfe', CC.line);
+    let by = y + P;
+
+    ctx.fillStyle = CC.ink;
+    cardFont(ctx, 32, 800);
+    ctx.fillText(`${c.cat.emoji} ${c.cat.label}`, X + P, by);
+    ctx.textAlign = 'right';
+    cardFont(ctx, 36, 500);
+    ctx.fillText(c.self, W - X - P, by - 2);
+    const selfW = ctx.measureText(c.self).width;
+    ctx.fillStyle = CC.muted;
+    cardFont(ctx, 20, 600);
+    ctx.fillText('자기평가', W - X - P - selfW - 12, by + 10);
+    ctx.textAlign = 'left';
+    by += 42 + 12;
+
+    const info = (label, value) => {
+      ctx.fillStyle = CC.muted;
+      cardFont(ctx, 22, 600);
+      ctx.fillText(label, X + P, by);
+      ctx.fillStyle = CC.ink;
+      cardFont(ctx, 23, 700);
+      ctx.fillText(value, X + P + 150, by - 1);
+      by += 34;
+    };
+    info('내가 고른 종류', c.kind);
+    info('내 추천', `${c.rec}  —  ${c.adj}`);
+    by += 18;
+
+    ctx.fillStyle = CC.muted;
+    cardFont(ctx, 21, 700);
+    ctx.fillText('A 역할 · 추천 부탁하기', X + P, by);
+    ctx.fillText('B 역할 · 추천하기', X + P + colW + colGap, by);
+    by += 32;
+
+    [0, 1].forEach(i => {
+      [A[i], B[i]].forEach((e, col) => {
+        const ex = X + P + col * (colW + colGap);
+        const st = STATUS[e.status];
+        roundBox(ctx, ex, by, colW, rows[i], 12, st.bg, st.border);
+        ctx.fillStyle = CC.ink;
+        cardFont(ctx, 22, 800);
+        ctx.fillText(e.id, ex + 16, by + 16);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = st.color;
+        cardFont(ctx, 20, 700);
+        ctx.fillText(e.status === 'none' ? st.label : `${st.label} · ${e.attempts}번`, ex + colW - 16, by + 18);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = CC.ink;
+        cardFont(ctx, 22, 500);
+        e.lines.forEach((ln, j) => ctx.fillText(ln, ex + 16, by + 16 + 30 + j * LH));
+      });
+      by += rows[i] + 12;
+    });
+    y += blockH + 20;
+  });
+
+  // 맨 아래: 가장 많이 시도한 표현 · 총 활동 시간
+  y += 4;
+  const most = d.most;
+  const hard = most && most.attempts > 1;
+  cardFont(ctx, 23, 600);
+  const mostLines = hard ? wrapText(ctx, `“${most.text}”  (${most.attempts}번)`, IW - 48) : ['모든 대사를 한 번에 말했어요! 🎉'];
+  const mh = 20 + 30 + mostLines.length * 32 + 18;
+  roundBox(ctx, X, y, IW, mh, 16, hard ? CC.yellowSoft : CC.greenSoft);
+  ctx.fillStyle = CC.muted;
+  cardFont(ctx, 21, 700);
+  ctx.fillText('가장 많이 시도한 표현', X + 24, y + 20);
+  ctx.fillStyle = CC.ink;
+  cardFont(ctx, 23, 600);
+  mostLines.forEach((ln, j) => ctx.fillText(ln, X + 24, y + 54 + j * 32));
+  y += mh + 22;
+
+  ctx.fillStyle = CC.ink;
+  cardFont(ctx, 23, 700);
+  ctx.fillText(`⏱ 총 활동 시간  ${s.minutes}분`, X, y);
+  // 색 설명
+  ctx.textAlign = 'right';
+  cardFont(ctx, 20, 600);
+  let lx = W - X;
+  [['기록 없음', STATUS.none], ['다시 연습 필요', STATUS.practice], ['통과', STATUS.pass]].forEach(([label, st]) => {
+    ctx.fillStyle = CC.muted;
+    ctx.fillText(label, lx, y + 3);
+    lx -= ctx.measureText(label).width + 10;
+    roundBox(ctx, lx - 20, y + 4, 20, 20, 5, st.bg, st.border);
+    lx -= 20 + 22;
+  });
+  ctx.textAlign = 'left';
+  y += 34 + CARD_PAD - 10;
+  return y;
+}
+
+function drawCard() {
+  const canvas = $('#cardCanvas');
+  const d = cardData();
+  const probe = document.createElement('canvas');
+  probe.width = CARD_W;
+  const h = paintCard(probe.getContext('2d'), d);
+  canvas.width = CARD_W;
+  canvas.height = h;
+  paintCard(canvas.getContext('2d'), d);
+}
+
+/** 파일명: 학급_번호_이름_날짜.png (예: 2-3_07_김민준_20260929.png) */
+function cardFileName() {
+  const dt = new Date(state.rp.finishedAt || Date.now());
+  const date = `${dt.getFullYear()}${two(dt.getMonth() + 1)}${two(dt.getDate())}`;
+  const safe = s => String(s).trim().replace(/[\\/:*?"<>|\s]+/g, '');
+  return [safe(CLASS_NAME), two(state.profile.num), safe(state.profile.name), date].filter(Boolean).join('_') + '.png';
+}
+
+function renderScreen4() {
+  $('#cardFile').textContent = `파일 이름: ${cardFileName()}`;
+  $('#saveMsg').hidden = true;
+  drawCard();
+  // 글꼴이 늦게 로드되면 다시 그림
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.screen === 4) drawCard(); });
+}
+
+$('#saveCard').addEventListener('click', () => {
+  const msg = $('#saveMsg');
+  const fail = () => showMsg(msg, 'err',
+    '😥 이미지 저장이 안 됐어요. <b>화면을 캡처해서 올려 주세요.</b><br>크롬북: <kbd>Ctrl</kbd> + <kbd>창 보기 ⧉</kbd> 키를 누르면 화면 전체가 캡처돼요.');
+  try {
+    $('#cardCanvas').toBlob(blob => {
+      if (!blob) { fail(); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = cardFileName();
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      showMsg(msg, 'ok', `✅ 저장했어요! <b>${esc(cardFileName())}</b><br>크롬북 <b>파일 앱 → 다운로드</b> 폴더에 있어요. 이 파일을 패들렛에 올려요.`);
+    }, 'image/png');
+  } catch (e) {
+    fail();
+  }
+});
 
 /* =========================================================
  * 시작
