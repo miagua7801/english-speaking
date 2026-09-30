@@ -156,16 +156,16 @@
 
   /* ---------- 화면 5 ---------- */
   .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-  .steps li {
+  .steps > li {
     display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
     border: 1.5px solid var(--line); border-radius: 12px; background: #fff;
   }
-  .steps li.done { border-color: #9ad8ae; background: var(--green-soft); }
+  .steps > li.done { border-color: #9ad8ae; background: var(--green-soft); }
   .steps .num {
     flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
     background: var(--primary-soft); color: var(--primary); font-weight: 800;
   }
-  .steps li.done .num { background: var(--green); color: #fff; }
+  .steps > li.done .num { background: var(--green); color: #fff; }
   .steps .body { flex: 1; min-width: 0; }
   .steps .body b.t { display: block; font-size: 17px; }
   .steps .body .sub { margin-top: 4px; }
@@ -175,6 +175,8 @@
     font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; padding-top: 4px;
   }
   .steps .check input { width: 20px; height: 20px; accent-color: var(--green); margin: 0; }
+  .howto { list-style: decimal; margin: 4px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; color: var(--ink); }
+  .howto kbd { font-size: 13px; }
   .copy-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
   .copy-row code {
     padding: 8px 12px; border-radius: 8px; background: #f1f3f8; font-size: 17px; font-weight: 700;
@@ -2172,20 +2174,18 @@ function submitSteps() {
         ? `저장한 파일: <b>${esc(cardFileName())}</b> (파일 앱 → 다운로드)`
         : '아직 저장하지 않았다면 아래 버튼을 눌러요. 저장이 안 되면 결과 카드 화면을 캡처해요.',
       extra: '<button type="button" class="btn" data-act="save">이미지로 저장</button>' },
-    { id: 'open', t: '패들렛을 열어요',
-      d: '새 탭에서 우리 반 패들렛이 열려요. 이 앱 탭은 닫지 마세요.',
-      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">패들렛 열기</a>' : '' },
-    { id: 'plus', t: '오른쪽 아래 <b>＋</b> 버튼을 눌러요',
-      d: '동그란 ＋ 버튼이에요. 새 게시물 칸이 열려요.' },
-    { id: 'title', t: '제목에 내 이름을 적어요',
-      d: '아래처럼 적어요. <b>복사</b>를 누르고 제목 칸에 <kbd>Ctrl</kbd> + <kbd>V</kbd> 로 붙여 넣어도 돼요.',
+    { id: 'name', t: '이름을 복사해요',
+      d: '<b>복사</b>를 누르면 패들렛 제목 칸에 붙여 넣을 수 있어요.',
       extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">복사</button></div>` },
-    { id: 'upload', t: '결과 카드 이미지를 올려요',
-      d: '<b>업로드</b> 버튼 → <b>파일 앱의 다운로드 폴더</b>에서 내 파일을 골라요. 이미지가 보일 때까지 기다려요.' },
-    { id: 'publish', t: '<b>게시</b> 버튼을 눌러요',
-      d: '게시물 칸의 <b>게시(Publish)</b> 버튼을 눌러요.' },
-    { id: 'check', t: '패들렛에 내 카드가 보이는지 확인해요',
-      d: '내 이름과 이미지가 잘 보이면 성공! 잘못 올렸다면 내 게시물의 <b>⋯</b> 메뉴에서 고칠 수 있어요.' },
+    { id: 'post', t: '패들렛에 올려요',
+      d: `<ol class="howto">
+          <li>아래 <b>패들렛 열기</b>를 눌러 패들렛을 열어요. (이 앱 탭은 닫지 마세요)</li>
+          <li>오른쪽 아래 동그란 <b>＋</b> 버튼을 눌러요.</li>
+          <li>제목 칸에 이름을 붙여 넣어요. <kbd>Ctrl</kbd> + <kbd>V</kbd></li>
+          <li><b>업로드</b> → <b>파일 앱의 다운로드 폴더</b>에서 결과 카드 이미지를 골라요.</li>
+          <li><b>게시</b> 버튼을 눌러요.</li>
+        </ol>`,
+      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">패들렛 열기</a>' : '' },
   ];
 }
 
@@ -2200,7 +2200,7 @@ function renderScreen5() {
       <span class="num">${checks[st.id] ? '✓' : i + 1}</span>
       <div class="body">
         <b class="t">${st.t}</b>
-        <p class="sub">${st.d}</p>
+        <div class="sub">${st.d}</div>
         ${st.extra || ''}
       </div>
       <label class="check"><input type="checkbox" ${checks[st.id] ? 'checked' : ''}> 했어요</label>
@@ -2231,14 +2231,20 @@ $('#submitSteps').addEventListener('click', e => {
   if (act.dataset.act === 'save') {
     drawCard(); // 화면 4를 거치지 않고 왔을 때도 최신 카드로 저장
     $('#saveCard').click();
-  } else if (act.dataset.act === 'open') {
-    state.submit.checks.open = true;
-    save();
-    setTimeout(renderScreen5, 0); // 링크가 먼저 열리도록
   } else if (act.dataset.act === 'copy') {
-    const reset = t => { act.textContent = t; setTimeout(() => { act.textContent = '복사'; }, 1800); };
+    const reset = t => {
+      const b = $('#submitSteps [data-act="copy"]');
+      b.textContent = t;
+      setTimeout(() => { b.textContent = '복사'; }, 1800);
+    };
+    const copied = () => {
+      state.submit.checks.name = true;
+      save();
+      renderScreen5();
+      reset('✅ 복사했어요');
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(postTitle()).then(() => reset('✅ 복사했어요'), () => reset('직접 적어 주세요'));
+      navigator.clipboard.writeText(postTitle()).then(copied, () => reset('직접 적어 주세요'));
     } else {
       reset('직접 적어 주세요');
     }
