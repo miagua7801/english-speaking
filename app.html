@@ -2093,15 +2093,24 @@ function paintCard(ctx, d) {
   return y;
 }
 
+/** 카드를 그리고, 그린 글자와 글꼴 목록을 돌려준다 (글꼴 미리 받기용) */
 function drawCard() {
   const canvas = $('#cardCanvas');
   const d = cardData();
   const probe = document.createElement('canvas');
   probe.width = CARD_W;
-  const h = paintCard(probe.getContext('2d'), d);
+  const pctx = probe.getContext('2d');
+  const used = new Map(); // 글꼴 → 그 글꼴로 그린 글자
+  const fillText = pctx.fillText.bind(pctx);
+  pctx.fillText = (t, ...rest) => {
+    used.set(pctx.font, (used.get(pctx.font) || '') + t);
+    return fillText(t, ...rest);
+  };
+  const h = paintCard(pctx, d);
   canvas.width = CARD_W;
   canvas.height = h;
   paintCard(canvas.getContext('2d'), d);
+  return used;
 }
 
 /** 파일명: 학급_번호_이름_날짜.png (예: 2-3_07_김민준_20260929.png) */
@@ -2115,9 +2124,11 @@ function cardFileName() {
 function renderScreen4() {
   $('#cardFile').textContent = `파일 이름: ${cardFileName()}`;
   $('#saveMsg').hidden = true;
-  drawCard();
-  // 글꼴이 늦게 로드되면 다시 그림
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (state.screen === 4) drawCard(); });
+  const used = drawCard();
+  // 웹 글꼴은 쓰는 글자만 나눠 받으므로, 카드에만 나오는 글자도 받은 뒤 다시 그림
+  if (!document.fonts || !document.fonts.load) return;
+  const loads = [...used].map(([font, text]) => document.fonts.load(font, text).catch(() => []));
+  Promise.all(loads).then(() => { if (state.screen === 4) drawCard(); });
 }
 
 $('#saveCard').addEventListener('click', () => {
