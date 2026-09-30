@@ -814,9 +814,13 @@ const TTS = {
   current: null, // 크롬에서 재생 도중 사라지지 않도록 참조 유지
   loadVoices() {
     const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    // 마이크·음성 테스트 페이지(index.html)와 같은 규칙: 목록에서 첫 번째 미국 영어 음성
-    const en = voices.filter(v => /^en[-_]/i.test(v.lang));
-    TTS.voice = en.find(v => /US/i.test(v.lang)) || en[0] || null;
+    const en = voices.filter(v => /^en[-_]US/i.test(v.lang));
+    TTS.voice =
+      en.find(v => /google/i.test(v.name)) ||
+      en.find(v => v.localService) ||
+      en[0] ||
+      voices.find(v => /^en/i.test(v.lang)) ||
+      null;
   },
   speak(text) {
     return new Promise(resolve => {
