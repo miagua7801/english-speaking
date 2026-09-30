@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>추천 요청 롤플레이</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
     --bg: #f4f6fb;
@@ -284,6 +285,45 @@
   .selfbtn span { display: block; font-size: 44px; line-height: 1.2; }
   .selfbtn:hover { border-color: var(--primary); background: var(--primary-soft); }
 
+  /* ---------- 디자인 정리 ----------
+   * 글꼴 하나(Pretendard)로 통일, 카드 테두리는 줄이고
+   * 지금 할 일(내 차례 카드 · 말하기 버튼)만 강하게 보이게 한다. */
+  body {
+    font-family: "Pretendard Variable", Pretendard, system-ui, "Noto Sans KR", "Malgun Gothic", sans-serif;
+    letter-spacing: -0.01em;
+  }
+  .en { font-family: inherit; letter-spacing: 0; }
+  h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+  .topbar .title { font-weight: 800; }
+
+  .card { border: 0; box-shadow: 0 1px 2px rgba(31, 36, 48, .06), 0 0 0 1px rgba(31, 36, 48, .03); }
+  .card h2 { font-size: 17px; }
+  .card.preview { background: #eaeffb; box-shadow: none; }
+  .card.preview .read-first { background: var(--card); font-weight: 500; }
+  .who { border-radius: 999px; }
+
+  #rpLine > .card:first-child { background: transparent; box-shadow: none; padding: 4px 0 10px; }
+  .bubble.them { background: var(--card); box-shadow: 0 1px 2px rgba(31, 36, 48, .08); }
+  .turn { border: 2px solid var(--primary); box-shadow: 0 10px 28px rgba(53, 99, 233, .16); }
+  .turn-head b { font-size: 19px; color: var(--primary); }
+
+  .ptt {
+    border: 0; background: var(--primary); color: #fff;
+    font-size: 21px; padding: 24px 16px; box-shadow: 0 4px 0 #2449b8;
+  }
+  .ptt:active { transform: translateY(2px); box-shadow: 0 2px 0 #2449b8; }
+  .ptt.listening { border: 0; background: var(--red); color: #fff; }
+  .ptt:disabled { background: #c9d2e6; color: #fff; box-shadow: none; }
+
+  .done-mark {
+    width: 64px; height: 64px; margin: 0 auto 8px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--green); color: #fff;
+    font-size: 34px; font-weight: 800;
+  }
+  .btn:focus-visible, .ptt:focus-visible, .tab:focus-visible, .selfbtn:focus-visible {
+    outline: 3px solid #9db4f5; outline-offset: 2px;
+  }
+
   @media (max-width: 520px) {
     main { padding: 14px 12px 40px; }
     h1 { font-size: 22px; }
@@ -294,7 +334,7 @@
 <body>
 
 <header class="topbar">
-  <span class="title">🎙️ 추천 요청 롤플레이</span>
+  <span class="title">추천 요청 롤플레이</span>
   <span class="badge" id="classBadge" hidden></span>
   <span class="badge" id="studentBadge" hidden></span>
   <span class="spacer"></span>
@@ -356,7 +396,7 @@
           </div>
         </div>
 
-        <div class="meter-row">🎚️ 내 목소리 <div class="meter"><i></i></div></div>
+        <div class="meter-row">내 목소리 <div class="meter"><i></i></div></div>
 
         <p style="margin:0 0 10px" id="testGuide"></p>
         <button type="button" class="ptt" id="testPtt"></button>
@@ -409,16 +449,16 @@
 
       <div class="card turn" id="rpTurn" hidden>
         <div class="turn-head">
-          <b>🎤 내 차례</b>
+          <b>내 차례</b>
           <span class="lvl" id="rpLevel"></span>
           <span class="spacer"></span>
           <span class="sub" id="rpTry" style="margin:0"></span>
         </div>
         <div id="rpScaffold"></div>
-        <button type="button" class="btn" id="rpPeek" style="margin-top:10px">👀 문장 보기</button>
+        <button type="button" class="btn" id="rpPeek" style="margin-top:10px">문장 보기</button>
 
         <div id="rpSpeak">
-          <div class="meter-row">🎚️ 내 목소리 <div class="meter"><i></i></div></div>
+          <div class="meter-row">내 목소리 <div class="meter"><i></i></div></div>
           <button type="button" class="btn primary" id="rpMicBtn" hidden>🎤 마이크 켜기</button>
           <button type="button" class="ptt" id="rpPtt"></button>
           <div class="kbd-hint"></div>
@@ -438,13 +478,13 @@
 
   <!-- ======================= 화면 4: 결과 카드 ======================= -->
   <section class="screen" data-screen="4" hidden>
-    <h1>🎉 모두 끝났어요!</h1>
+    <h1>모두 끝났어요!</h1>
     <p class="lead">결과 카드를 이미지로 저장해서 패들렛에 올려요.</p>
     <div class="card" style="padding:12px">
       <canvas id="cardCanvas" class="result-card" aria-label="롤플레이 결과 카드"></canvas>
     </div>
     <div class="start-area">
-      <button type="button" class="btn primary big" id="saveCard">🖼️ 이미지로 저장</button>
+      <button type="button" class="btn primary big" id="saveCard">이미지로 저장</button>
       <p class="sub" id="cardFile"></p>
       <div id="saveMsg" hidden></div>
     </div>
@@ -455,18 +495,18 @@
 
   <!-- ======================= 화면 5: 패들렛 제출 ======================= -->
   <section class="screen" data-screen="5" hidden>
-    <h1>📮 패들렛에 올려요</h1>
+    <h1>패들렛에 올려요</h1>
     <p class="lead">한 단계씩 따라 하고, 끝낸 단계에는 <b>했어요</b>에 체크해요.</p>
     <div id="padletMissing" hidden></div>
     <div class="card">
       <ol class="steps" id="submitSteps"></ol>
     </div>
     <div class="start-area">
-      <button type="button" class="btn primary big" id="submitDone" disabled>🎉 제출 완료!</button>
+      <button type="button" class="btn primary big" id="submitDone" disabled>제출 완료</button>
       <p class="sub" id="submitLeft"></p>
     </div>
     <div class="card done-box" id="submitFinish" hidden>
-      <div class="big-emoji">🏆</div>
+      <div class="done-mark" aria-hidden="true">✓</div>
       <h2 style="justify-content:center">제출 완료!</h2>
     </div>
     <div class="nav-row">
@@ -1315,7 +1355,7 @@ function renderStep() {
         <div class="opts">
           ${items}
           <label class="opt"><input type="radio" name="pick" value="own">
-            <span>📋 다른 종류<small class="en">Your Own</small></span>
+            <span>다른 종류<small class="en">Your Own</small></span>
           </label>
         </div>
         <div class="own" id="own" hidden>
@@ -1341,10 +1381,10 @@ function renderStep() {
     </div>
 
     <div class="card preview">
-      <h3>🗣️ 이렇게 대화하게 돼요 <small style="color:var(--muted);font-weight:500">(내가 추천하는 역할)</small></h3>
-      <p class="read-first">📖 다음으로 넘어가기 전에 <b>전체 대화를 읽어 보고 가세요.</b></p>
+      <h3>이렇게 대화하게 돼요 <small style="color:var(--muted);font-weight:500">(내가 추천하는 역할)</small></h3>
+      <p class="read-first">다음으로 넘어가기 전에 <b>전체 대화를 읽어 보고 가세요.</b></p>
       <div id="pv"></div>
-      <p class="tip">💡 영화·책은 <b class="en">a/an</b>, 음식은 <b class="en">some</b>을 써요.
+      <p class="tip">영화·책은 <b class="en">a/an</b>, 음식은 <b class="en">some</b>을 써요.
         <span class="en">Can you recommend <b>a</b> movie? / Can you recommend <b>some</b> food?</span></p>
     </div>`;
 
@@ -1439,7 +1479,7 @@ function updateStep() {
   ];
   $('#pv', panel).innerHTML = lines.map(([who, text]) => `
     <div class="line">
-      <span class="who ${who}">${who === 'me' ? '🎤 나' : '🔊 친구'}</span>
+      <span class="who ${who}">${who === 'me' ? '나' : '친구'}</span>
       <span class="say en ${who}">${text}</span>
     </div>`).join('');
 
@@ -1485,9 +1525,9 @@ $('#nextBtn').addEventListener('click', () => {
  * ========================================================= */
 const MAX_TRIES = 3;
 const LEVELS = {
-  1: '🌱 1단계 · 문장 보고 말하기',
-  2: '🌿 2단계 · 빈칸 채우며 말하기',
-  3: '🌳 3단계 · 힌트만 보고 말하기',
+  1: '1단계 · 문장 보고 말하기',
+  2: '2단계 · 빈칸 채우며 말하기',
+  3: '3단계 · 힌트만 보고 말하기',
 };
 const SELF_EVAL = [['😊', '잘했어요'], ['😐', '보통이에요'], ['😅', '어려웠어요']];
 
@@ -1581,7 +1621,7 @@ function scaffoldHTML(line, level, peeked) {
     return `<div class="target en">${esc(line.tpl).replace(/\[([^\]]+)\]/g,
       (m, w) => `<span class="gap" style="width:${Math.max(2.5, w.length * 0.62)}em"></span>`)}</div>`;
   }
-  return `<div class="ko-hint">💬 ${esc(line.ko)}</div>`;
+  return `<div class="ko-hint">${esc(line.ko)}</div>`;
 }
 
 function renderRp() {
@@ -1613,7 +1653,7 @@ function renderIntro(key) {
   $('#rpIntro').innerHTML = `
     <h2>${cat.emoji} ${cat.label} — 라운드 ${R.round}</h2>
     ${body}
-    ${first ? `<p class="tip">🎤 내 차례가 되면 <b>스페이스바</b>를 ${how}. 친구(컴퓨터)가 말하는 동안에는 마이크가 잠겨요.</p>` : ''}
+    ${first ? `<p class="tip">내 차례가 되면 <b>스페이스바</b>를 ${how}. 친구(컴퓨터)가 말하는 동안에는 마이크가 잠겨요.</p>` : ''}
     <div class="nav" style="margin-top:16px">
       ${first ? '<button type="button" class="btn" id="rpBack">← 입력 고치기</button>' : '<span></span>'}
       <button type="button" class="btn primary big" id="rpGo">시작 ▶</button>
@@ -1655,7 +1695,7 @@ function renderLine() {
     const cur = i === R.li;
     if (!l.me) {
       return `<div class="bubble them${cur && playingKey === lk ? ' speaking' : ''}"${cur ? ' data-cur="1"' : ''}>
-        <span class="who2">🔊 친구</span><span class="en">${esc(l.text)}</span>
+        <span class="who2">친구</span><span class="en">${esc(l.text)}</span>
         <button type="button" class="replay" data-say="${esc(l.text)}">${cur && needTap ? '▶ 듣기' : '🔊 다시 듣기'}</button>
       </div>`;
     }
@@ -1663,7 +1703,7 @@ function renderLine() {
     const rec = R.records[`${key}_r${R.round}_${l.id}`];
     const bad = rec && rec.needsPractice;
     return `<div class="bubble me${bad ? ' practice' : ''}">
-      <span class="en">${esc(l.text)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">🎤 나</span>
+      <span class="en">${esc(l.text)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">나</span>
     </div>`;
   }).join('');
   $$('#rpLog .replay').forEach(b => b.addEventListener('click', () => {
@@ -1867,7 +1907,7 @@ function cardData() {
 }
 
 const CARD_W = 1080, CARD_PAD = 48;
-const CARD_FONT = '"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+const CARD_FONT = '"Pretendard Variable", Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
 const CC = {
   ink: '#1f2430', muted: '#6b7280', line: '#e3e7ef', soft: '#f4f6fb', primary: '#3563e9',
   green: '#16a34a', greenSoft: '#e7f7ec', yellow: '#c58a00', yellowSoft: '#fff4cc', graySoft: '#f3f4f6',
@@ -2023,7 +2063,7 @@ function paintCard(ctx, d) {
   const most = d.most;
   const hard = most && most.attempts > 1;
   cardFont(ctx, 23, 600);
-  const mostLines = hard ? wrapText(ctx, `“${most.text}”  (${most.attempts}번)`, IW - 48) : ['모든 대사를 한 번에 말했어요! 🎉'];
+  const mostLines = hard ? wrapText(ctx, `“${most.text}”  (${most.attempts}번)`, IW - 48) : ['모든 대사를 한 번에 말했어요!'];
   const mh = 20 + 30 + mostLines.length * 32 + 18;
   roundBox(ctx, X, y, IW, mh, 16, hard ? CC.yellowSoft : CC.greenSoft);
   ctx.fillStyle = CC.muted;
@@ -2120,17 +2160,17 @@ function submitSteps() {
       d: state.submit.saved
         ? `저장한 파일: <b>${esc(cardFileName())}</b> (파일 앱 → 다운로드)`
         : '아직 저장하지 않았다면 아래 버튼을 눌러요. 저장이 안 되면 결과 카드 화면을 캡처해요.',
-      extra: '<button type="button" class="btn" data-act="save">🖼️ 이미지로 저장</button>' },
+      extra: '<button type="button" class="btn" data-act="save">이미지로 저장</button>' },
     { id: 'open', t: '패들렛을 열어요',
       d: '새 탭에서 우리 반 패들렛이 열려요. 이 앱 탭은 닫지 마세요.',
-      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">📌 패들렛 열기</a>' : '' },
+      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">패들렛 열기</a>' : '' },
     { id: 'plus', t: '오른쪽 아래 <b>＋</b> 버튼을 눌러요',
       d: '동그란 ＋ 버튼이에요. 새 게시물 칸이 열려요.' },
     { id: 'title', t: '제목에 내 이름을 적어요',
       d: '아래처럼 적어요. <b>복사</b>를 누르고 제목 칸에 <kbd>Ctrl</kbd> + <kbd>V</kbd> 로 붙여 넣어도 돼요.',
-      extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">📋 복사</button></div>` },
+      extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">복사</button></div>` },
     { id: 'upload', t: '결과 카드 이미지를 올려요',
-      d: '📎 <b>업로드</b> 버튼 → <b>파일 앱의 다운로드 폴더</b>에서 내 파일을 골라요. 이미지가 보일 때까지 기다려요.' },
+      d: '<b>업로드</b> 버튼 → <b>파일 앱의 다운로드 폴더</b>에서 내 파일을 골라요. 이미지가 보일 때까지 기다려요.' },
     { id: 'publish', t: '<b>게시</b> 버튼을 눌러요',
       d: '게시물 칸의 <b>게시(Publish)</b> 버튼을 눌러요.' },
     { id: 'check', t: '패들렛에 내 카드가 보이는지 확인해요',
@@ -2185,7 +2225,7 @@ $('#submitSteps').addEventListener('click', e => {
     save();
     setTimeout(renderScreen5, 0); // 링크가 먼저 열리도록
   } else if (act.dataset.act === 'copy') {
-    const reset = t => { act.textContent = t; setTimeout(() => { act.textContent = '📋 복사'; }, 1800); };
+    const reset = t => { act.textContent = t; setTimeout(() => { act.textContent = '복사'; }, 1800); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(postTitle()).then(() => reset('✅ 복사했어요'), () => reset('직접 적어 주세요'));
     } else {
