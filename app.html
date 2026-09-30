@@ -1563,7 +1563,8 @@ function buildRound(key, round) {
       : {
         text: `Can you recommend ${p.single} for me?`,
         tpl: `Can you [recommend] ${p.single} for [me]?`,
-        ko: `친구가 좋아하는 종류(${p.kind}) 하나를 추천해 달라고 부탁하세요. (a/an 사용)`,
+        // 제시어는 문장에 들어가는 그대로 단수로 보여 줌 (예: musical movie)
+        ko: `친구가 좋아하는 종류(${p.single.replace(/^an? /, '')}) 하나를 추천해 달라고 부탁하세요. (a/an 사용)`,
         frags: ['can you recommend', 'for me'],
         extras: [p.single.replace(/^an? /, '')],
       };
