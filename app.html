@@ -898,6 +898,15 @@ function errorMessage(code) {
 /* =========================================================
  * 말하기 버튼 (push-to-talk / 토글 / 스페이스바)
  * ========================================================= */
+/*
+ * 말할 시간. 크롬은 continuous=false면 1초쯤 쉬면 바로 끝내 버려서
+ * 계속 듣게 하고, 아래 기준으로만 끝낸다.
+ *  - 누르고 말하기: 뗀 뒤 releaseGraceMs 만큼 더 듣고 끝
+ *  - 한 번 눌러 말하기: 다시 누르거나, 말한 뒤 silenceMs 동안 조용하면 끝
+ *  - 공통: 최대 maxMs
+ */
+const LISTEN = { maxMs: 30000, silenceMs: 4000, releaseGraceMs: 600 };
+
 const PTT = {
   all: [],
   active: null, // 스페이스바가 조종하는 버튼
@@ -916,6 +925,25 @@ const PTT = {
   create(btn, opts) {
     let rec = null, listening = false, pressedAt = 0;
     let alts = [], errCode = null, shortPress = false;
+    let finals = [], interim = '', silenceTimer = null, maxTimer = null, graceTimer = null;
+
+    function clearTimers() {
+      clearTimeout(silenceTimer); clearTimeout(maxTimer); clearTimeout(graceTimer);
+      silenceTimer = maxTimer = graceTimer = null;
+    }
+    /** 나뉘어 들어온 결과를 이어 붙여 후보 문장 목록으로 만든다 */
+    function buildAlts() {
+      if (!finals.length) return interim ? [{ text: interim, confidence: 0 }] : [];
+      const n = Math.max(...finals.map(f => f.length));
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const parts = finals.map(f => f[Math.min(i, f.length - 1)]);
+        const text = parts.map(p => p.text.trim()).filter(Boolean).join(' ');
+        const confidence = parts.reduce((s, p) => s + (p.confidence || 0), 0) / parts.length;
+        if (text && !out.some(o => o.text === text)) out.push({ text, confidence });
+      }
+      return out;
+    }
 
     function render() {
       const mode = state.settings.mode;
@@ -937,19 +965,40 @@ const PTT = {
       const block = PTT.blockReason();
       if (block) { opts.onError(block); return; }
       alts = []; errCode = null; shortPress = false; pressedAt = Date.now();
+      finals = []; interim = ''; clearTimers();
       rec = new SR();
       rec.lang = 'en-US';
-      rec.continuous = false;
-      rec.interimResults = false;
+      rec.continuous = true;
+      rec.interimResults = true;
       rec.maxAlternatives = 3;
-      rec.onstart = () => { listening = true; render(); };
+      rec.onstart = () => {
+        listening = true; render();
+        maxTimer = setTimeout(() => { if (rec) rec.stop(); }, LISTEN.maxMs);
+      };
       rec.onresult = e => {
-        const r = e.results[0];
-        alts = [];
-        for (let i = 0; i < r.length; i++) alts.push({ text: r[i].transcript, confidence: r[i].confidence });
+        finals = []; interim = '';
+        for (let j = 0; j < e.results.length; j++) {
+          const r = e.results[j];
+          if (r.isFinal) {
+            const f = [];
+            for (let i = 0; i < r.length; i++) f.push({ text: r[i].transcript, confidence: r[i].confidence });
+            finals.push(f);
+          } else {
+            interim += r[0].transcript;
+          }
+        }
+        interim = interim.trim();
+        // 한 번 눌러 말하기: 말이 끊기고 한참 조용하면 자동으로 끝
+        if (state.settings.mode === 'toggle') {
+          clearTimeout(silenceTimer);
+          silenceTimer = setTimeout(() => { if (rec) rec.stop(); }, LISTEN.silenceMs);
+        }
       };
       rec.onerror = e => { errCode = e.error; };
       rec.onend = () => {
+        clearTimers();
+        alts = buildAlts();
+        if (alts.length && errCode === 'no-speech') errCode = null;
         rec = null; listening = false; render();
         if (shortPress) opts.onError(MSG.short());
         else if (errCode && errCode !== 'aborted') opts.onError(errorMessage(errCode));
@@ -971,6 +1020,11 @@ const PTT = {
       if (state.settings.mode === 'hold' && Date.now() - pressedAt < 350) {
         shortPress = true;
         rec.abort();
+      } else if (state.settings.mode === 'hold') {
+        // 떼는 순간 마지막 단어가 잘리지 않도록 조금 더 듣고 끝낸다
+        if (graceTimer) return;
+        const r = rec;
+        graceTimer = setTimeout(() => { graceTimer = null; if (rec === r) r.stop(); }, LISTEN.releaseGraceMs);
       } else {
         rec.stop();
       }
@@ -985,7 +1039,7 @@ const PTT = {
       release() {
         if (state.settings.mode === 'hold') stop();
       },
-      cancel() { if (rec) { shortPress = false; errCode = 'aborted'; rec.abort(); } },
+      cancel() { if (rec) { clearTimers(); shortPress = false; errCode = 'aborted'; rec.abort(); } },
     };
 
     btn.addEventListener('pointerdown', e => {
@@ -1126,7 +1180,7 @@ function renderMode() {
   $$('input[name=mode]').forEach(r => { r.checked = r.value === state.settings.mode; });
   $('#testGuide').innerHTML = hold
     ? '<b>스페이스바</b>(또는 아래 버튼)를 <b>누른 채로</b> <span class="en"><b>“Hello”</b></span> 라고 말하고 떼세요.'
-    : '<b>스페이스바</b>(또는 아래 버튼)를 <b>한 번</b> 누르고 <span class="en"><b>“Hello”</b></span> 라고 말하세요. 말이 끝나면 저절로 멈춰요.';
+    : '<b>스페이스바</b>(또는 아래 버튼)를 <b>한 번</b> 누르고 <span class="en"><b>“Hello”</b></span> 라고 말하세요. 다 말하면 한 번 더 누르세요. (조용히 있으면 잠시 뒤 저절로 멈춰요)';
   $$('.kbd-hint').forEach(el => {
     el.innerHTML = hold
       ? '<kbd>Space</kbd> 를 누르고 있는 동안 녹음돼요'
