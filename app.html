@@ -78,7 +78,12 @@
     background: #fff; outline: none;
   }
   input[type=text]:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-  input.bad { border-color: var(--red); }
+  select {
+    width: 100%; max-width: 420px; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 10px;
+    background: #fff; font: inherit; color: inherit; cursor: pointer; outline: none;
+  }
+  select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  select:disabled { background: #f3f4f6; color: var(--muted); cursor: not-allowed; }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
@@ -179,19 +184,7 @@
   .own .field { margin-bottom: 8px; }
   .own .sub { margin: 0; }
 
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; font-size: 14px; color: var(--muted); }
-  .chip {
-    padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff;
-    cursor: pointer; font-size: 15px;
-  }
-  .chip:hover { border-color: var(--primary); color: var(--primary); }
 
-  .adjs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .adj {
-    padding: 9px 16px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff;
-    cursor: pointer; font-weight: 700;
-  }
-  .adj.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 
   .preview h3 { margin: 0 0 12px; font-size: 17px; }
   .line { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
@@ -429,50 +422,122 @@ const params = new URLSearchParams(location.search);
 const CLASS_NAME = (params.get('class') || '').trim();
 const CAT_COUNT = params.get('cat') === '2' ? 2 : 3;
 
+/*
+ * 종류(장르)마다 그 장르에 맞는 작품·음식만 고를 수 있게 한다.
+ *  - items: 기본 항목 2개 / others: '다른 종류' 드롭다운 항목
+ *  - titles: 추천 드롭다운 목록 (그 장르에 실제로 속하는 것만)
+ *  - adjs: 그 장르에 잘 어울리는 형용사 (드롭다운 맨 위에 먼저 보여 줌)
+ *  - 음식 이름은 "It's really ~" 와 어울리도록 셀 수 없는 이름이나 a + 단수로 적는다.
+ */
 const CATS = {
   movies: {
     emoji: '🎬', label: 'Movies', ko: '영화',
     ask: '어떤 종류의 영화를 좋아하나요?',
     hintA1: '친구에게 어떤 종류의 영화를 좋아하는지 물어보세요.',
-    items: [
-      { plural: 'action movies', single: 'an action movie' },
-      { plural: 'musical movies', single: 'a musical movie' },
-    ],
     useSome: false,
-    ownEx: { plural: 'horror movies', single: 'a horror movie' },
-    recAsk: '친구에게 추천할 영화 제목',
-    hints: ['Spider-Man', 'Frozen', 'Inside Out'],
-    adjs: ['exciting', 'funny', 'touching', 'interesting', 'scary'],
+    recAsk: '친구에게 추천할 영화',
+    items: [
+      { id: 'action', plural: 'action movies', single: 'an action movie', ko: '액션 영화',
+        titles: ['Spider-Man', 'The Avengers', 'Top Gun: Maverick', 'Mission: Impossible', 'Black Panther'],
+        adjs: ['exciting', 'thrilling', 'cool', 'amazing'] },
+      { id: 'musical', plural: 'musical movies', single: 'a musical movie', ko: '뮤지컬 영화',
+        titles: ['Frozen', 'The Greatest Showman', 'Mamma Mia!', 'Aladdin', 'La La Land'],
+        adjs: ['touching', 'beautiful', 'fun', 'amazing'] },
+    ],
+    others: [
+      { id: 'animated', plural: 'animated movies', single: 'an animated movie', ko: '애니메이션 영화',
+        titles: ['Inside Out', 'Toy Story', 'Zootopia', 'Coco', 'Moana'],
+        adjs: ['funny', 'touching', 'heartwarming', 'fun'] },
+      { id: 'comedy', plural: 'comedy movies', single: 'a comedy movie', ko: '코미디 영화',
+        titles: ['Home Alone', 'Paddington', 'Night at the Museum', 'Jumanji'],
+        adjs: ['funny', 'fun', 'interesting', 'heartwarming'] },
+      { id: 'horror', plural: 'horror movies', single: 'a horror movie', ko: '공포 영화',
+        titles: ['Train to Busan', 'A Quiet Place', 'Goosebumps'],
+        adjs: ['scary', 'thrilling', 'exciting', 'interesting'] },
+      { id: 'fantasy', plural: 'fantasy movies', single: 'a fantasy movie', ko: '판타지 영화',
+        titles: ['Harry Potter', 'The Lord of the Rings', 'The Chronicles of Narnia', 'Wonka'],
+        adjs: ['amazing', 'fantastic', 'exciting', 'beautiful'] },
+      { id: 'scifi', plural: 'sci-fi movies', single: 'a sci-fi movie', ko: 'SF 영화',
+        titles: ['Interstellar', 'Star Wars', 'Jurassic Park', 'E.T.'],
+        adjs: ['amazing', 'exciting', 'interesting', 'cool'] },
+    ],
+    adjs: [
+      ['exciting', '신나는'], ['funny', '웃긴'], ['touching', '감동적인'], ['interesting', '흥미로운'],
+      ['scary', '무서운'], ['amazing', '놀라운'], ['fantastic', '환상적인'], ['thrilling', '짜릿한'],
+      ['beautiful', '아름다운'], ['heartwarming', '마음이 따뜻해지는'], ['fun', '재미있는'], ['cool', '멋진'],
+      ['sad', '슬픈'],
+    ],
     partner: { kind: 'musical movies', rec: 'Frozen', adj: 'touching' },
   },
   books: {
     emoji: '📚', label: 'Books', ko: '책',
     ask: '어떤 종류의 책을 좋아하나요?',
     hintA1: '친구에게 어떤 종류의 책을 좋아하는지 물어보세요.',
-    items: [
-      { plural: 'sci-fi novels', single: 'a sci-fi novel' },
-      { plural: 'historical novels', single: 'a historical novel' },
-    ],
     useSome: false,
-    ownEx: { plural: 'fantasy novels', single: 'a fantasy novel' },
-    recAsk: '친구에게 추천할 책 제목',
-    hints: ['The Martian', 'Wonder', 'Harry Potter'],
-    adjs: ['exciting', 'funny', 'touching', 'interesting', 'scary'],
-    partner: { kind: 'historical novels', rec: 'Wonder', adj: 'interesting' },
+    recAsk: '친구에게 추천할 책',
+    items: [
+      { id: 'scifi', plural: 'sci-fi novels', single: 'a sci-fi novel', ko: 'SF 소설',
+        titles: ['The Martian', "Ender's Game", 'The Giver', 'The Time Machine'],
+        adjs: ['exciting', 'interesting', 'amazing', 'creative'] },
+      { id: 'historical', plural: 'historical novels', single: 'a historical novel', ko: '역사 소설',
+        titles: ['The Book Thief', 'Number the Stars', 'War Horse', 'The Boy in the Striped Pajamas'],
+        adjs: ['touching', 'interesting', 'sad', 'moving'] },
+    ],
+    others: [
+      { id: 'fantasy', plural: 'fantasy novels', single: 'a fantasy novel', ko: '판타지 소설',
+        titles: ['Harry Potter', 'The Hobbit', 'Percy Jackson', 'The Chronicles of Narnia'],
+        adjs: ['exciting', 'fantastic', 'amazing', 'creative'] },
+      { id: 'mystery', plural: 'mystery novels', single: 'a mystery novel', ko: '추리 소설',
+        titles: ['Sherlock Holmes', 'The Westing Game', 'And Then There Were None'],
+        adjs: ['thrilling', 'mysterious', 'interesting', 'exciting'] },
+      { id: 'adventure', plural: 'adventure novels', single: 'an adventure novel', ko: '모험 소설',
+        titles: ['Treasure Island', 'Robinson Crusoe', 'Around the World in 80 Days'],
+        adjs: ['exciting', 'thrilling', 'interesting', 'fun'] },
+      { id: 'realistic', plural: 'realistic novels', single: 'a realistic novel', ko: '성장·사실주의 소설',
+        titles: ['Wonder', 'Holes', 'Diary of a Wimpy Kid'],
+        adjs: ['touching', 'heartwarming', 'funny', 'moving'] },
+    ],
+    adjs: [
+      ['exciting', '신나는'], ['funny', '웃긴'], ['touching', '감동적인'], ['interesting', '흥미로운'],
+      ['scary', '무서운'], ['amazing', '놀라운'], ['fantastic', '환상적인'], ['thrilling', '짜릿한'],
+      ['mysterious', '신비로운'], ['heartwarming', '마음이 따뜻해지는'], ['moving', '마음을 울리는'],
+      ['creative', '창의적인'], ['sad', '슬픈'], ['fun', '재미있는'],
+    ],
+    partner: { kind: 'historical novels', rec: 'The Book Thief', adj: 'touching' },
   },
   food: {
     emoji: '🍽️', label: 'Food', ko: '음식',
     ask: '어떤 종류의 음식을 좋아하나요?',
     hintA1: '친구에게 어떤 종류의 음식을 좋아하는지 물어보세요.',
-    items: [
-      { plural: 'Korean food' },
-      { plural: 'Italian food' },
-    ],
     useSome: true,
-    ownEx: { plural: 'Mexican food' },
-    recAsk: '친구에게 추천할 음식 이름',
-    hints: ['bibimbap', 'bulgogi', 'pizza', 'pasta'],
-    adjs: ['delicious', 'spicy', 'sweet', 'healthy'],
+    recAsk: '친구에게 추천할 음식',
+    items: [
+      { id: 'korean', plural: 'Korean food', ko: '한식',
+        titles: ['bibimbap', 'bulgogi', 'tteokbokki', 'japchae', 'kimchi stew'],
+        adjs: ['delicious', 'spicy', 'healthy', 'tasty'] },
+      { id: 'italian', plural: 'Italian food', ko: '이탈리아 음식',
+        titles: ['pizza', 'pasta', 'lasagna', 'risotto'],
+        adjs: ['delicious', 'cheesy', 'tasty', 'yummy'] },
+    ],
+    others: [
+      { id: 'japanese', plural: 'Japanese food', ko: '일식',
+        titles: ['sushi', 'ramen', 'udon', 'tempura'],
+        adjs: ['delicious', 'fresh', 'tasty', 'healthy'] },
+      { id: 'chinese', plural: 'Chinese food', ko: '중식',
+        titles: ['fried rice', 'mapo tofu', 'sweet and sour pork', 'dim sum'],
+        adjs: ['delicious', 'spicy', 'crispy', 'tasty'] },
+      { id: 'mexican', plural: 'Mexican food', ko: '멕시코 음식',
+        titles: ['a taco', 'a burrito', 'guacamole', 'a quesadilla'],
+        adjs: ['delicious', 'spicy', 'cheesy', 'yummy'] },
+      { id: 'american', plural: 'American food', ko: '미국 음식',
+        titles: ['a hamburger', 'fried chicken', 'a hot dog', 'mac and cheese'],
+        adjs: ['delicious', 'crispy', 'cheesy', 'yummy'] },
+    ],
+    adjs: [
+      ['delicious', '맛있는'], ['tasty', '맛있는'], ['yummy', '냠냠 맛있는'], ['spicy', '매운'],
+      ['sweet', '달콤한'], ['healthy', '건강에 좋은'], ['fresh', '신선한'], ['crispy', '바삭한'],
+      ['cheesy', '치즈가 듬뿍'], ['salty', '짭짤한'], ['sour', '새콤한'], ['savory', '감칠맛 나는'],
+    ],
     partner: { kind: 'Italian food', rec: 'pasta', adj: 'delicious' },
   },
 };
@@ -482,13 +547,13 @@ const CAT_KEYS = ['movies', 'books', 'food'].slice(0, CAT_COUNT);
  * 저장 (localStorage)
  * ========================================================= */
 function emptyChoice() {
-  return { pick: null, ownPlural: '', ownSingular: '', singularTouched: false, rec: '', adj: '' };
+  return { pick: null, ownGenre: '', rec: '', adj: '' };
 }
 function defaultState() {
   const choices = {};
   Object.keys(CATS).forEach(k => { choices[k] = emptyChoice(); });
   return {
-    v: 1,
+    v: 2,
     screen: 1,
     profile: { name: '', num: '' },
     settings: { mode: 'hold', rate: 0.85, volume: 1 },
@@ -503,7 +568,12 @@ function loadState() {
   const base = defaultState();
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if (!saved || saved.v !== 1) return base;
+    if (!saved) return base;
+    // 입력 방식이 바뀐 v1 저장본: 이름·설정만 살리고 선택은 새로 받음
+    Object.assign(base.profile, saved.profile);
+    Object.assign(base.settings, saved.settings);
+    base.micTested = !!saved.micTested;
+    if (saved.v !== 2) return base;
     Object.assign(base.profile, saved.profile);
     Object.assign(base.settings, saved.settings);
     Object.keys(CATS).forEach(k => Object.assign(base.choices[k], saved.choices && saved.choices[k]));
@@ -525,7 +595,6 @@ function save() {
  * ========================================================= */
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const HANGUL = /[ㄱ-ㅎㅏ-ㅣ가-힣]/;
 
 function clean(s) {
   return String(s || '').replace(/\s+/g, ' ').trim().replace(/[.!?]+$/, '').trim();
@@ -1038,50 +1107,34 @@ $('#startBtn').addEventListener('click', () => {
  * 화면 2 — 종류 고르기 & 입력
  * ========================================================= */
 
-/** 복수형에서 a/an 단수형을 짐작 (학생이 직접 고칠 수 있음) */
-function guessSingular(plural) {
-  const p = clean(plural);
-  if (!p) return '';
-  const words = p.split(' ');
-  let last = words[words.length - 1];
-  if (/(movie|cookie|zombie|pie|brownie|rookie|selfie)s$/i.test(last)) last = last.slice(0, -1);
-  else if (/ies$/i.test(last)) last = last.replace(/ies$/i, 'y');
-  else if (/[^s]s$/i.test(last)) last = last.slice(0, -1);
-  words[words.length - 1] = last;
-  const phrase = words.join(' ');
-  return (/^[aeiou]/i.test(phrase) ? 'an ' : 'a ') + phrase;
+/** 지금 고른 종류(장르) 객체 — 기본 2개 또는 '다른 종류' 드롭다운 */
+function genreOf(key) {
+  const cat = CATS[key], c = state.choices[key];
+  if (c.pick === 'own') return cat.others.find(g => g.id === c.ownGenre) || null;
+  return c.pick == null ? null : cat.items[c.pick] || null;
 }
 
 /** 선택 결과 → 문장에 들어갈 값 */
 function resolved(key) {
-  const cat = CATS[key], c = state.choices[key];
-  if (c.pick === 'own') {
-    return { kind: clean(c.ownPlural), single: cat.useSome ? '' : clean(c.ownSingular), rec: clean(c.rec), adj: clean(c.adj) };
-  }
-  const item = c.pick == null ? null : cat.items[c.pick];
-  return { kind: item ? item.plural : '', single: item && item.single ? item.single : '', rec: clean(c.rec), adj: clean(c.adj) };
+  const g = genreOf(key), c = state.choices[key];
+  return { kind: g ? g.plural : '', single: g && g.single ? g.single : '', rec: c.rec, adj: c.adj };
+}
+
+/** 저장된 값이 현재 목록에 없으면 비움 (장르를 바꿨거나 목록이 바뀐 경우) */
+function sanitizeChoice(key) {
+  const cat = CATS[key], c = state.choices[key], g = genreOf(key);
+  if (c.pick === 'own' && !g) c.ownGenre = '';
+  if (!g || !g.titles.includes(c.rec)) c.rec = '';
+  if (!cat.adjs.some(([a]) => a === c.adj)) c.adj = '';
 }
 
 function validate(key) {
   const cat = CATS[key], c = state.choices[key];
   const miss = [];
-  let korean = false;
   if (c.pick == null) miss.push('좋아하는 종류를 골라 주세요.');
-  else if (c.pick === 'own') {
-    if (!clean(c.ownPlural)) miss.push('좋아하는 종류를 영어로 써 주세요.');
-    if (HANGUL.test(c.ownPlural)) korean = true;
-    if (!cat.useSome) {
-      const s = clean(c.ownSingular);
-      if (!s) miss.push('하나를 말할 때의 모양(a/an + 단어)을 써 주세요.');
-      else if (!/^(a|an)\s+\S/i.test(s)) miss.push(`하나를 말할 때는 a 또는 an으로 시작해요. (예: ${cat.ownEx.single})`);
-      if (HANGUL.test(c.ownSingular)) korean = true;
-    }
-  }
-  if (!clean(c.rec)) miss.push(`${cat.recAsk}을 써 주세요.`);
-  if (HANGUL.test(c.rec)) korean = true;
-  if (!clean(c.adj)) miss.push('어떤 점이 좋은지(형용사) 골라 주세요.');
-  if (HANGUL.test(c.adj)) korean = true;
-  if (korean) miss.push('영어 칸에 한글이 들어 있어요. 영어로 써 주세요.');
+  else if (c.pick === 'own' && !genreOf(key)) miss.push('다른 종류 목록에서 하나를 골라 주세요.');
+  if (!c.rec) miss.push('2번에서 추천할 것을 골라 주세요.');
+  if (!c.adj) miss.push('어떤 점이 좋은지(형용사) 골라 주세요.');
   return miss;
 }
 
@@ -1089,6 +1142,7 @@ function renderStep() {
   const key = CAT_KEYS[state.step];
   const cat = CATS[key];
   const c = state.choices[key];
+  sanitizeChoice(key);
 
   // 탭
   const tabs = $('#tabs');
@@ -1103,19 +1157,10 @@ function renderStep() {
     tabs.append(b);
   });
 
-  // 입력 패널 (학생 입력값은 innerHTML에 넣지 않고 .value로만 채움)
-  const items = cat.items.map((it, i) => `
+  const items = cat.items.map((g, i) => `
     <label class="opt"><input type="radio" name="pick" value="${i}">
-      <span><span class="en">${it.plural}</span>${it.single ? `<small class="en">${it.single}</small>` : ''}</span>
+      <span><span class="en">${g.plural}</span><small>${g.ko}</small></span>
     </label>`).join('');
-  const ownFields = cat.useSome
-    ? `<label class="field"><span>좋아하는 음식 종류 (영어)</span>
-         <input type="text" id="ownPlural" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.plural}"></label>`
-    : `<label class="field"><span>좋아하는 종류 — 여러 개를 말할 때 (-s)</span>
-         <input type="text" id="ownPlural" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.plural}"></label>
-       <label class="field"><span>하나를 말할 때 — a / an + 단어</span>
-         <input type="text" id="ownSingular" class="en" autocomplete="off" placeholder="예: ${cat.ownEx.single}"></label>
-       <p class="sub">모음(a, e, i, o, u) 소리로 시작하면 <b>an</b>을 써요. 예: <span class="en">an action movie</span></p>`;
 
   $('#panel').innerHTML = `
     <div class="card">
@@ -1126,22 +1171,28 @@ function renderStep() {
         <div class="opts">
           ${items}
           <label class="opt"><input type="radio" name="pick" value="own">
-            <span>✏️ 직접 입력<small class="en">Your Own</small></span>
+            <span>📋 다른 종류<small class="en">Your Own</small></span>
           </label>
         </div>
-        <div class="own" id="own" hidden>${ownFields}</div>
+        <div class="own" id="own" hidden>
+          <label class="field"><span>다른 종류 고르기</span>
+            <select id="ownGenre" class="en">
+              <option value="">— 골라 주세요 —</option>
+              ${cat.others.map(g => `<option value="${g.id}">${g.plural} (${g.ko})</option>`).join('')}
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="q">
         <div class="q-title"><span class="num">2</span> ${cat.recAsk}</div>
-        <input type="text" id="rec" class="en" autocomplete="off" placeholder="영어로 써요">
-        <div class="chips">예: ${cat.hints.map(h => `<button type="button" class="chip en" data-hint="${h}">${h}</button>`).join('')}</div>
+        <select id="rec" class="en"></select>
+        <p class="sub" id="recNote"></p>
       </div>
 
       <div class="q">
         <div class="q-title"><span class="num">3</span> 어떤 점이 좋나요? <span class="en" style="font-weight:500;color:var(--muted)">It's really ___.</span></div>
-        <div class="adjs">${cat.adjs.map(a => `<button type="button" class="adj en" data-adj="${a}">${a}</button>`).join('')}</div>
-        <input type="text" id="adjCustom" class="en" autocomplete="off" placeholder="다른 형용사를 직접 써도 돼요" style="max-width:320px">
+        <select id="adj" class="en"></select>
       </div>
     </div>
 
@@ -1153,49 +1204,60 @@ function renderStep() {
     </div>`;
 
   const panel = $('#panel');
-  const ownPlural = $('#ownPlural', panel), ownSingular = $('#ownSingular', panel);
-  const recEl = $('#rec', panel), adjCustom = $('#adjCustom', panel);
+  const ownSel = $('#ownGenre', panel), recSel = $('#rec', panel), adjSel = $('#adj', panel);
 
-  // 값 채우기
   $$('input[name=pick]', panel).forEach(r => { r.checked = String(c.pick) === r.value; });
-  ownPlural.value = c.ownPlural;
-  if (ownSingular) ownSingular.value = c.ownSingular;
-  recEl.value = c.rec;
-  adjCustom.value = cat.adjs.includes(c.adj) ? '' : c.adj;
+  ownSel.value = c.ownGenre;
 
-  // 이벤트
-  $$('input[name=pick]', panel).forEach(r => r.addEventListener('change', () => {
-    c.pick = r.value === 'own' ? 'own' : Number(r.value);
+  const onGenreChange = () => {
+    sanitizeChoice(key);
+    fillChoiceSelects(key);
     save();
     updateStep();
-    if (c.pick === 'own' && !clean(c.ownPlural)) ownPlural.focus();
+  };
+  $$('input[name=pick]', panel).forEach(r => r.addEventListener('change', () => {
+    c.pick = r.value === 'own' ? 'own' : Number(r.value);
+    onGenreChange();
+    if (c.pick === 'own' && !c.ownGenre) ownSel.focus();
   }));
-  ownPlural.addEventListener('input', () => {
-    c.ownPlural = ownPlural.value;
-    if (ownSingular && !c.singularTouched) {
-      c.ownSingular = guessSingular(ownPlural.value);
-      ownSingular.value = c.ownSingular;
-    }
-    save(); updateStep();
-  });
-  if (ownSingular) ownSingular.addEventListener('input', () => {
-    c.ownSingular = ownSingular.value;
-    c.singularTouched = ownSingular.value.trim() !== '';
-    save(); updateStep();
-  });
-  recEl.addEventListener('input', () => { c.rec = recEl.value; save(); updateStep(); });
-  $$('.chip', panel).forEach(b => b.addEventListener('click', () => {
-    recEl.value = c.rec = b.dataset.hint;
-    save(); updateStep();
-  }));
-  $$('.adj', panel).forEach(b => b.addEventListener('click', () => {
-    c.adj = b.dataset.adj;
-    adjCustom.value = '';
-    save(); updateStep();
-  }));
-  adjCustom.addEventListener('input', () => { c.adj = adjCustom.value; save(); updateStep(); });
+  ownSel.addEventListener('change', () => { c.ownGenre = ownSel.value; onGenreChange(); });
+  recSel.addEventListener('change', () => { c.rec = recSel.value; save(); updateStep(); });
+  adjSel.addEventListener('change', () => { c.adj = adjSel.value; save(); updateStep(); });
 
+  fillChoiceSelects(key);
   updateStep();
+}
+
+/** 추천·형용사 드롭다운을 고른 장르에 맞게 채움 */
+function fillChoiceSelects(key) {
+  const cat = CATS[key], c = state.choices[key], g = genreOf(key);
+  const panel = $('#panel');
+  const recSel = $('#rec', panel), adjSel = $('#adj', panel);
+  const opt = (v, label) => `<option value="${esc(v)}">${esc(label)}</option>`;
+
+  if (g) {
+    recSel.disabled = false;
+    recSel.innerHTML = opt('', '— 골라 주세요 —') + g.titles.map(t => opt(t, t)).join('');
+    $('#recNote', panel).textContent = `${cat.emoji} ${g.ko}에 속하는 것만 보여요.`;
+  } else {
+    recSel.disabled = true;
+    recSel.innerHTML = opt('', '— 먼저 1번에서 종류를 골라요 —');
+    $('#recNote', panel).textContent = '';
+  }
+  recSel.value = c.rec;
+
+  const label = ([a, ko]) => `${a} — ${ko}`;
+  const all = cat.adjs;
+  if (g) {
+    const good = all.filter(([a]) => g.adjs.includes(a));
+    const rest = all.filter(([a]) => !g.adjs.includes(a));
+    adjSel.innerHTML = opt('', '— 골라 주세요 —')
+      + `<optgroup label="⭐ ${esc(g.ko)}에 잘 어울려요">${good.map(x => opt(x[0], label(x))).join('')}</optgroup>`
+      + `<optgroup label="다른 형용사">${rest.map(x => opt(x[0], label(x))).join('')}</optgroup>`;
+  } else {
+    adjSel.innerHTML = opt('', '— 골라 주세요 —') + all.map(x => opt(x[0], label(x))).join('');
+  }
+  adjSel.value = c.adj;
 }
 
 /** 입력이 바뀔 때마다: 미리보기 · 검사 · 버튼 상태만 갱신 (입력 칸은 다시 그리지 않음) */
@@ -1206,7 +1268,6 @@ function updateStep() {
   const panel = $('#panel');
 
   $('#own', panel).hidden = c.pick !== 'own';
-  $$('.adj', panel).forEach(b => b.classList.toggle('on', b.dataset.adj === c.adj));
   $$('.tab').forEach(t => t.classList.toggle('done', validate(t.dataset.key).length === 0));
 
   // 미리보기
@@ -1230,8 +1291,6 @@ function updateStep() {
   // 검사
   const miss = validate(key);
   $('#missing').innerHTML = miss.map(m => `<li>${esc(m)}</li>`).join('');
-  const own = $('#ownSingular', panel);
-  if (own) own.classList.toggle('bad', c.pick === 'own' && !!clean(c.ownSingular) && !/^(a|an)\s+\S/i.test(clean(c.ownSingular)));
 
   const last = state.step === CAT_KEYS.length - 1;
   const nextBtn = $('#nextBtn');
@@ -1319,8 +1378,6 @@ function buildRound(key, round) {
     ];
   }
   const r = resolved(key);
-  const own = state.choices[key].pick === 'own';
-  const adjFixed = cat.adjs.includes(r.adj);
   return [
     { id: 'A1', me: false, text: a1 },
     {
@@ -1328,8 +1385,8 @@ function buildRound(key, round) {
       text: `I like ${r.kind}.`,
       tpl: `I [like] ${r.kind}.`,
       ko: `내가 좋아하는 종류를 말하세요. (${r.kind})`,
-      frags: own ? ['i like'] : ['i like', r.kind],
-      extras: own ? [r.kind] : [],
+      frags: ['i like', r.kind],
+      extras: [],
     },
     { id: 'A2', me: false, text: cat.useSome ? `Can you recommend some ${r.kind} for me?` : `Can you recommend ${r.single} for me?` },
     {
@@ -1337,8 +1394,8 @@ function buildRound(key, round) {
       text: `Sure. I recommend ${r.rec}. It's really ${r.adj}.`,
       tpl: `Sure. I [recommend] ${r.rec}. It's [really] ${r.adj}.`,
       ko: `추천하는 것과, 그것이 어떤지 말하세요. (${r.rec} · ${r.adj})`,
-      frags: adjFixed ? ['i recommend', "it's really", r.adj] : ['i recommend', "it's really"],
-      extras: adjFixed ? ['sure', r.rec] : ['sure', r.rec, r.adj],
+      frags: ['i recommend', "it's really", r.adj],
+      extras: ['sure', r.rec], // 작품명·음식명은 채점하지 않음
     },
   ];
 }
