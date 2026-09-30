@@ -425,9 +425,12 @@ const CAT_COUNT = params.get('cat') === '2' ? 2 : 3;
 /*
  * 종류(장르)마다 그 장르에 맞는 작품·음식만 고를 수 있게 한다.
  *  - items: 기본 항목 2개 / others: '다른 종류' 드롭다운 항목
- *  - titles: 추천 드롭다운 목록 (그 장르에 실제로 속하는 것만)
- *  - adjs: 그 장르에 잘 어울리는 형용사 (드롭다운 맨 위에 먼저 보여 줌)
- *  - 음식 이름은 "It's really ~" 와 어울리도록 셀 수 없는 이름이나 a + 단수로 적는다.
+ *  - titles: 추천 드롭다운 목록. 문자열 또는 { en, ko, adjs }
+ *      ko  : 드롭다운에 괄호로 보여 줄 한국어 이름
+ *      adjs: 그 음식의 특징에 맞는 형용사 (고르면 형용사 드롭다운 맨 위에 보여 줌)
+ *  - adjs(장르): 그 장르에 잘 어울리는 형용사
+ *  - adjs(카테고리): 그 카테고리에서 고를 수 있는 형용사 전체 [영어, 뜻]
+ *  - 음식 이름은 "It's really ~" 와 어울리도록 셀 수 없는 이름으로 적는다.
  */
 const CATS = {
   movies: {
@@ -438,33 +441,24 @@ const CATS = {
     recAsk: '친구에게 추천할 영화',
     items: [
       { id: 'action', plural: 'action movies', single: 'an action movie', ko: '액션 영화',
-        titles: ['Spider-Man', 'The Avengers', 'Top Gun: Maverick', 'Mission: Impossible', 'Black Panther'],
+        titles: ['Spider-Man', 'The Avengers', 'Top Gun', 'Mission: Impossible'],
         adjs: ['exciting', 'thrilling', 'cool', 'amazing'] },
       { id: 'musical', plural: 'musical movies', single: 'a musical movie', ko: '뮤지컬 영화',
-        titles: ['Frozen', 'The Greatest Showman', 'Mamma Mia!', 'Aladdin', 'La La Land'],
+        titles: ['Frozen', 'The Greatest Showman', 'Mamma Mia!', 'Aladdin'],
         adjs: ['touching', 'beautiful', 'fun', 'amazing'] },
     ],
     others: [
       { id: 'animated', plural: 'animated movies', single: 'an animated movie', ko: '애니메이션 영화',
-        titles: ['Inside Out', 'Toy Story', 'Zootopia', 'Coco', 'Moana'],
-        adjs: ['funny', 'touching', 'heartwarming', 'fun'] },
-      { id: 'comedy', plural: 'comedy movies', single: 'a comedy movie', ko: '코미디 영화',
-        titles: ['Home Alone', 'Paddington', 'Night at the Museum', 'Jumanji'],
-        adjs: ['funny', 'fun', 'interesting', 'heartwarming'] },
-      { id: 'horror', plural: 'horror movies', single: 'a horror movie', ko: '공포 영화',
-        titles: ['Train to Busan', 'A Quiet Place', 'Goosebumps'],
-        adjs: ['scary', 'thrilling', 'exciting', 'interesting'] },
-      { id: 'fantasy', plural: 'fantasy movies', single: 'a fantasy movie', ko: '판타지 영화',
-        titles: ['Harry Potter', 'The Lord of the Rings', 'The Chronicles of Narnia', 'Wonka'],
-        adjs: ['amazing', 'fantastic', 'exciting', 'beautiful'] },
+        titles: ['Coco', 'Moana'],
+        adjs: ['touching', 'heartwarming', 'beautiful', 'funny'] },
       { id: 'scifi', plural: 'sci-fi movies', single: 'a sci-fi movie', ko: 'SF 영화',
-        titles: ['Interstellar', 'Star Wars', 'Jurassic Park', 'E.T.'],
-        adjs: ['amazing', 'exciting', 'interesting', 'cool'] },
+        titles: ['E.T.', 'Star Wars'],
+        adjs: ['amazing', 'exciting', 'cool', 'fantastic'] },
     ],
     adjs: [
-      ['exciting', '신나는'], ['funny', '웃긴'], ['touching', '감동적인'], ['interesting', '흥미로운'],
-      ['scary', '무서운'], ['amazing', '놀라운'], ['fantastic', '환상적인'], ['thrilling', '짜릿한'],
-      ['beautiful', '아름다운'], ['heartwarming', '마음이 따뜻해지는'], ['fun', '재미있는'], ['cool', '멋진'],
+      ['exciting', '신나는'], ['thrilling', '짜릿한'], ['cool', '멋진'], ['amazing', '놀라운'],
+      ['fantastic', '환상적인'], ['funny', '웃긴'], ['fun', '재미있는'], ['touching', '감동적인'],
+      ['heartwarming', '마음이 따뜻해지는'], ['beautiful', '아름다운'], ['interesting', '흥미로운'],
       ['sad', '슬픈'],
     ],
     partner: { kind: 'musical movies', rec: 'Frozen', adj: 'touching' },
@@ -476,34 +470,28 @@ const CATS = {
     useSome: false,
     recAsk: '친구에게 추천할 책',
     items: [
-      { id: 'scifi', plural: 'sci-fi novels', single: 'a sci-fi novel', ko: 'SF 소설',
-        titles: ['The Martian', "Ender's Game", 'The Giver', 'The Time Machine'],
-        adjs: ['exciting', 'interesting', 'amazing', 'creative'] },
-      { id: 'historical', plural: 'historical novels', single: 'a historical novel', ko: '역사 소설',
-        titles: ['The Book Thief', 'Number the Stars', 'War Horse', 'The Boy in the Striped Pajamas'],
-        adjs: ['touching', 'interesting', 'sad', 'moving'] },
-    ],
-    others: [
       { id: 'fantasy', plural: 'fantasy novels', single: 'a fantasy novel', ko: '판타지 소설',
-        titles: ['Harry Potter', 'The Hobbit', 'Percy Jackson', 'The Chronicles of Narnia'],
-        adjs: ['exciting', 'fantastic', 'amazing', 'creative'] },
-      { id: 'mystery', plural: 'mystery novels', single: 'a mystery novel', ko: '추리 소설',
-        titles: ['Sherlock Holmes', 'The Westing Game', 'And Then There Were None'],
-        adjs: ['thrilling', 'mysterious', 'interesting', 'exciting'] },
+        titles: ['Harry Potter', 'The Hobbit', 'Percy Jackson'],
+        adjs: ['fantastic', 'exciting', 'amazing', 'creative'] },
       { id: 'adventure', plural: 'adventure novels', single: 'an adventure novel', ko: '모험 소설',
         titles: ['Treasure Island', 'Robinson Crusoe', 'Around the World in 80 Days'],
         adjs: ['exciting', 'thrilling', 'interesting', 'fun'] },
-      { id: 'realistic', plural: 'realistic novels', single: 'a realistic novel', ko: '성장·사실주의 소설',
-        titles: ['Wonder', 'Holes', 'Diary of a Wimpy Kid'],
-        adjs: ['touching', 'heartwarming', 'funny', 'moving'] },
+    ],
+    others: [
+      { id: 'growing', plural: 'coming-of-age novels', single: 'a coming-of-age novel', ko: '성장 소설',
+        titles: ['Holes', 'Wonder'],
+        adjs: ['touching', 'heartwarming', 'moving', 'meaningful'] },
+      { id: 'mystery', plural: 'mystery novels', single: 'a mystery novel', ko: '추리 소설',
+        titles: ['Sherlock Holmes', 'The Westing Game'],
+        adjs: ['mysterious', 'thrilling', 'interesting', 'clever'] },
     ],
     adjs: [
-      ['exciting', '신나는'], ['funny', '웃긴'], ['touching', '감동적인'], ['interesting', '흥미로운'],
-      ['scary', '무서운'], ['amazing', '놀라운'], ['fantastic', '환상적인'], ['thrilling', '짜릿한'],
-      ['mysterious', '신비로운'], ['heartwarming', '마음이 따뜻해지는'], ['moving', '마음을 울리는'],
-      ['creative', '창의적인'], ['sad', '슬픈'], ['fun', '재미있는'],
+      ['exciting', '신나는'], ['thrilling', '짜릿한'], ['interesting', '흥미로운'], ['fun', '재미있는'],
+      ['fantastic', '환상적인'], ['amazing', '놀라운'], ['creative', '창의적인'], ['mysterious', '신비로운'],
+      ['clever', '기발한'], ['touching', '감동적인'], ['moving', '마음을 울리는'],
+      ['heartwarming', '마음이 따뜻해지는'], ['meaningful', '의미 있는'], ['funny', '웃긴'],
     ],
-    partner: { kind: 'historical novels', rec: 'The Book Thief', adj: 'touching' },
+    partner: { kind: 'adventure novels', rec: 'Treasure Island', adj: 'exciting' },
   },
   food: {
     emoji: '🍽️', label: 'Food', ko: '음식',
@@ -513,34 +501,53 @@ const CATS = {
     recAsk: '친구에게 추천할 음식',
     items: [
       { id: 'korean', plural: 'Korean food', ko: '한식',
-        titles: ['bibimbap', 'bulgogi', 'tteokbokki', 'japchae', 'kimchi stew'],
-        adjs: ['delicious', 'spicy', 'healthy', 'tasty'] },
+        titles: [
+          { en: 'bibimbap', ko: '비빔밥', adjs: ['healthy', 'colorful', 'delicious'] },
+          { en: 'bulgogi', ko: '불고기', adjs: ['sweet', 'savory', 'juicy'] },
+          { en: 'tteokbokki', ko: '떡볶이', adjs: ['spicy', 'chewy', 'sweet'] },
+          { en: 'japchae', ko: '잡채', adjs: ['chewy', 'savory', 'colorful'] },
+          { en: 'kimchi stew', ko: '김치찌개', adjs: ['spicy', 'warm', 'sour'] },
+        ],
+        adjs: ['delicious', 'spicy', 'healthy', 'savory'] },
       { id: 'italian', plural: 'Italian food', ko: '이탈리아 음식',
-        titles: ['pizza', 'pasta', 'lasagna', 'risotto'],
-        adjs: ['delicious', 'cheesy', 'tasty', 'yummy'] },
+        titles: [
+          { en: 'pizza', ko: '피자', adjs: ['cheesy', 'crispy', 'delicious'] },
+          { en: 'pasta', ko: '파스타', adjs: ['creamy', 'delicious', 'savory'] },
+          { en: 'lasagna', ko: '라자냐', adjs: ['cheesy', 'warm', 'savory'] },
+          { en: 'risotto', ko: '리소토', adjs: ['creamy', 'soft', 'savory'] },
+        ],
+        adjs: ['delicious', 'cheesy', 'creamy', 'savory'] },
     ],
     others: [
       { id: 'japanese', plural: 'Japanese food', ko: '일식',
-        titles: ['sushi', 'ramen', 'udon', 'tempura'],
-        adjs: ['delicious', 'fresh', 'tasty', 'healthy'] },
+        titles: [
+          { en: 'sushi', ko: '초밥', adjs: ['fresh', 'healthy', 'delicious'] },
+          { en: 'ramen', ko: '라멘', adjs: ['warm', 'savory', 'salty'] },
+          { en: 'udon', ko: '우동', adjs: ['chewy', 'warm', 'soft'] },
+          { en: 'tempura', ko: '튀김', adjs: ['crispy', 'delicious', 'light'] },
+        ],
+        adjs: ['fresh', 'healthy', 'delicious', 'warm'] },
       { id: 'chinese', plural: 'Chinese food', ko: '중식',
-        titles: ['fried rice', 'mapo tofu', 'sweet and sour pork', 'dim sum'],
-        adjs: ['delicious', 'spicy', 'crispy', 'tasty'] },
-      { id: 'mexican', plural: 'Mexican food', ko: '멕시코 음식',
-        titles: ['a taco', 'a burrito', 'guacamole', 'a quesadilla'],
-        adjs: ['delicious', 'spicy', 'cheesy', 'yummy'] },
-      { id: 'american', plural: 'American food', ko: '미국 음식',
-        titles: ['a hamburger', 'fried chicken', 'a hot dog', 'mac and cheese'],
-        adjs: ['delicious', 'crispy', 'cheesy', 'yummy'] },
+        titles: [
+          { en: 'fried rice', ko: '볶음밥', adjs: ['savory', 'delicious', 'filling'] },
+          { en: 'mapo tofu', ko: '마파두부', adjs: ['spicy', 'soft', 'savory'] },
+          { en: 'sweet and sour pork', ko: '탕수육', adjs: ['crispy', 'sweet', 'sour'] },
+          { en: 'dim sum', ko: '딤섬', adjs: ['juicy', 'soft', 'delicious'] },
+        ],
+        adjs: ['delicious', 'crispy', 'spicy', 'savory'] },
     ],
     adjs: [
-      ['delicious', '맛있는'], ['tasty', '맛있는'], ['yummy', '냠냠 맛있는'], ['spicy', '매운'],
-      ['sweet', '달콤한'], ['healthy', '건강에 좋은'], ['fresh', '신선한'], ['crispy', '바삭한'],
-      ['cheesy', '치즈가 듬뿍'], ['salty', '짭짤한'], ['sour', '새콤한'], ['savory', '감칠맛 나는'],
+      ['delicious', '맛있는'], ['spicy', '매운'], ['sweet', '달콤한'], ['sour', '새콤한'],
+      ['salty', '짭짤한'], ['savory', '감칠맛 나는'], ['crispy', '바삭한'], ['chewy', '쫄깃한'],
+      ['soft', '부드러운'], ['creamy', '크림처럼 부드러운'], ['cheesy', '치즈가 듬뿍 든'],
+      ['juicy', '육즙이 가득한'], ['fresh', '신선한'], ['healthy', '건강에 좋은'], ['warm', '따뜻한'],
+      ['light', '담백한'], ['filling', '든든한'], ['colorful', '알록달록한'],
     ],
     partner: { kind: 'Italian food', rec: 'pasta', adj: 'delicious' },
   },
 };
+/** 추천 목록 항목을 { en, ko, adjs } 모양으로 맞춤 */
+const titlesOf = g => (g ? g.titles : []).map(t => (typeof t === 'string' ? { en: t } : t));
 const CAT_KEYS = ['movies', 'books', 'food'].slice(0, CAT_COUNT);
 
 /* =========================================================
@@ -1124,7 +1131,7 @@ function resolved(key) {
 function sanitizeChoice(key) {
   const cat = CATS[key], c = state.choices[key], g = genreOf(key);
   if (c.pick === 'own' && !g) c.ownGenre = '';
-  if (!g || !g.titles.includes(c.rec)) c.rec = '';
+  if (!titlesOf(g).some(t => t.en === c.rec)) c.rec = '';
   if (!cat.adjs.some(([a]) => a === c.adj)) c.adj = '';
 }
 
@@ -1221,7 +1228,12 @@ function renderStep() {
     if (c.pick === 'own' && !c.ownGenre) ownSel.focus();
   }));
   ownSel.addEventListener('change', () => { c.ownGenre = ownSel.value; onGenreChange(); });
-  recSel.addEventListener('change', () => { c.rec = recSel.value; save(); updateStep(); });
+  recSel.addEventListener('change', () => {
+    c.rec = recSel.value;
+    fillChoiceSelects(key); // 음식을 고르면 그 음식에 맞는 형용사를 위로
+    save();
+    updateStep();
+  });
   adjSel.addEventListener('change', () => { c.adj = adjSel.value; save(); updateStep(); });
 
   fillChoiceSelects(key);
@@ -1237,7 +1249,8 @@ function fillChoiceSelects(key) {
 
   if (g) {
     recSel.disabled = false;
-    recSel.innerHTML = opt('', '— 골라 주세요 —') + g.titles.map(t => opt(t, t)).join('');
+    recSel.innerHTML = opt('', '— 골라 주세요 —')
+      + titlesOf(g).map(t => opt(t.en, t.ko ? `${t.en} (${t.ko})` : t.en)).join('');
     $('#recNote', panel).textContent = `${cat.emoji} ${g.ko}에 속하는 것만 보여요.`;
   } else {
     recSel.disabled = true;
@@ -1249,10 +1262,14 @@ function fillChoiceSelects(key) {
   const label = ([a, ko]) => `${a} — ${ko}`;
   const all = cat.adjs;
   if (g) {
-    const good = all.filter(([a]) => g.adjs.includes(a));
-    const rest = all.filter(([a]) => !g.adjs.includes(a));
+    // 음식처럼 항목마다 특징 형용사가 있으면 그것을, 없으면 장르의 형용사를 위에 보여 줌
+    const picked = titlesOf(g).find(t => t.en === c.rec);
+    const top = picked && picked.adjs ? picked.adjs : g.adjs;
+    const topName = picked && picked.adjs ? (picked.ko || picked.en) : g.ko;
+    const good = top.map(a => all.find(x => x[0] === a)).filter(Boolean);
+    const rest = all.filter(([a]) => !top.includes(a));
     adjSel.innerHTML = opt('', '— 골라 주세요 —')
-      + `<optgroup label="⭐ ${esc(g.ko)}에 잘 어울려요">${good.map(x => opt(x[0], label(x))).join('')}</optgroup>`
+      + `<optgroup label="⭐ ${esc(topName)}에 잘 어울려요">${good.map(x => opt(x[0], label(x))).join('')}</optgroup>`
       + `<optgroup label="다른 형용사">${rest.map(x => opt(x[0], label(x))).join('')}</optgroup>`;
   } else {
     adjSel.innerHTML = opt('', '— 골라 주세요 —') + all.map(x => opt(x[0], label(x))).join('');
