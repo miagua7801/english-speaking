@@ -354,10 +354,11 @@
     <div class="card">
       <h2>① 내 번호</h2>
       <div class="row">
-        <label class="field" style="flex:0 1 140px"><span>번호</span>
-          <input type="text" id="num" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="예: 7">
+        <label class="field" style="flex:0 1 160px"><span>번호 (4자리)</span>
+          <input type="text" id="num" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="예: 2301">
         </label>
       </div>
+      <p class="sub">학년·반·번호를 이어서 써요. 2학년 3반 1번 → <b>2301</b>, 2학년 5반 17번 → <b>2517</b></p>
     </div>
 
     <div class="card">
@@ -731,6 +732,12 @@ function showMsg(el, type, html) {
   el.className = 'msg ' + type;
   el.innerHTML = html;
   el.hidden = false;
+}
+/** 번호: 학년(2) + 반(1자리) + 번호(2자리). 예: 2301 = 2학년 3반 1번 */
+function validId(s) { return /^2[1-9](0[1-9]|[1-9]\d)$/.test(String(s || '')); }
+function idLabel(s) {
+  const m = String(s || '').match(/^(\d)(\d)(\d\d)$/);
+  return m ? `${m[1]}학년 ${m[2]}반 ${Number(m[3])}번` : String(s || '');
 }
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1192,8 +1199,8 @@ function renderHeader() {
   cb.textContent = CLASS_NAME;
   const sb = $('#studentBadge');
   const { num } = state.profile;
-  sb.hidden = !(state.screen > 1 && num);
-  sb.textContent = `${num}번`;
+  sb.hidden = !(state.screen > 1 && validId(num));
+  sb.textContent = num;
 }
 
 $('#resetBtn').addEventListener('click', () => {
@@ -1208,7 +1215,7 @@ $('#resetBtn').addEventListener('click', () => {
 const numEl = $('#num');
 numEl.value = state.profile.num;
 numEl.addEventListener('input', () => {
-  numEl.value = numEl.value.replace(/\D/g, '').slice(0, 2);
+  numEl.value = numEl.value.replace(/\D/g, '').slice(0, 4);
   state.profile.num = numEl.value;
   save();
 });
@@ -1311,8 +1318,10 @@ let skipTestWarned = false;
 $('#startBtn').addEventListener('click', () => {
   const startMsg = $('#startMsg');
   const num = numEl.value.trim();
-  if (!num) {
-    showMsg(startMsg, 'err', '✍️ <b>번호</b>를 먼저 써 주세요.');
+  if (!validId(num)) {
+    showMsg(startMsg, 'err', num
+      ? '✍️ 번호는 <b>학년·반·번호 4자리</b>로 써 주세요. 예: 2학년 3반 1번 → <b>2301</b>'
+      : '✍️ <b>번호</b>를 먼저 써 주세요. 예: 2학년 3반 1번 → <b>2301</b>');
     numEl.focus();
     return;
   }
@@ -2011,10 +2020,10 @@ function paintCard(ctx, d) {
   ctx.fillText('추천 요청 롤플레이 결과', X, 70);
   ctx.textAlign = 'right';
   cardFont(ctx, 30, 700);
-  ctx.fillText(`${state.profile.num}번`, W - X, 40);
+  ctx.fillText(state.profile.num, W - X, 40);
   cardFont(ctx, 23, 500);
   const dateStr = `${d.date.getFullYear()}.${two(d.date.getMonth() + 1)}.${two(d.date.getDate())}`;
-  ctx.fillText(CLASS_NAME ? `${CLASS_NAME} · ${dateStr}` : dateStr, W - X, 86);
+  ctx.fillText(`${idLabel(state.profile.num)} · ${dateStr}`, W - X, 86);
   ctx.textAlign = 'left';
   let y = HB + 32;
 
@@ -2161,12 +2170,12 @@ function drawCard() {
   return used;
 }
 
-/** 파일명: 학급_번호_날짜.png (예: 2-3_07_20260929.png) */
+/** 파일명: 번호_날짜.png (예: 2301_20260929.png). 번호에 학년·반이 들어 있음 */
 function cardFileName() {
   const dt = new Date(state.rp.finishedAt || Date.now());
   const date = `${dt.getFullYear()}${two(dt.getMonth() + 1)}${two(dt.getDate())}`;
   const safe = s => String(s).trim().replace(/[\\/:*?"<>|\s]+/g, '');
-  return [safe(CLASS_NAME), two(state.profile.num), date].filter(Boolean).join('_') + '.png';
+  return `${safe(state.profile.num)}_${date}.png`;
 }
 
 function renderScreen4() {
@@ -2208,9 +2217,9 @@ $('#saveCard').addEventListener('click', () => {
 /* =========================================================
  * 화면 5: 패들렛 제출
  * ========================================================= */
-/** 패들렛 글 제목: 학급 번호 (예: 2-3 07번) */
+/** 패들렛 글 제목: 번호 4자리 (예: 2301) */
 function postTitle() {
-  return [CLASS_NAME, `${two(state.profile.num)}번`].filter(Boolean).join(' ');
+  return String(state.profile.num).trim();
 }
 
 function submitSteps() {
@@ -2312,7 +2321,7 @@ $('#backToCard').addEventListener('click', () => go(4));
  * ========================================================= */
 renderBanners();
 let startScreen = state.screen;
-if (startScreen >= 2 && !state.profile.num) startScreen = 1;
+if (startScreen >= 2 && !validId(state.profile.num)) startScreen = 1;
 if (startScreen >= 3 && !CAT_KEYS.every(k => validate(k).length === 0)) startScreen = 2;
 if (startScreen >= 4 && !(state.rp && state.rp.phase === 'done')) startScreen = 3;
 go(startScreen);
