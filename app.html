@@ -707,7 +707,8 @@ function loadState() {
     base.step = Math.min(saved.step || 0, CAT_KEYS.length - 1);
     base.micTested = !!saved.micTested;
     base.startedAt = saved.startedAt || null;
-    if (saved.rp && saved.rp.ci < CAT_KEYS.length) base.rp = saved.rp;
+    // 라운드 순서가 바뀌기 전(A→B)의 진행 기록은 버리고 롤플레이를 처음부터
+    if (saved.rp && saved.rp.order === 'BA' && saved.rp.ci < CAT_KEYS.length) base.rp = saved.rp;
     if (saved.submit) {
       base.submit.saved = !!saved.submit.saved;
       base.submit.done = !!saved.submit.done;
@@ -1579,7 +1580,7 @@ const LEVELS = {
 const SELF_EVAL = [['😊', '잘했어요'], ['😐', '보통이에요'], ['😅', '어려웠어요']];
 
 function newRp() {
-  return { ci: 0, round: 1, li: 0, phase: 'intro', level: 1, records: {}, selfEval: {}, startedAt: null, finishedAt: null };
+  return { order: 'BA', ci: 0, round: 1, li: 0, phase: 'intro', level: 1, records: {}, selfEval: {}, startedAt: null, finishedAt: null };
 }
 
 function partnerOf(key) {
@@ -1589,13 +1590,13 @@ function partnerOf(key) {
 }
 
 /**
- * 한 라운드의 대사 4개.
+ * 한 역할(A 또는 B)로 하는 대사 4개.
  * 학생 대사: text(문장), tpl([빈칸] 표시), ko(한국어 힌트), frags(채점 조각), extras(채점 안 함, 회색 표시)
  */
-function buildRound(key, round) {
+function buildRole(key, role) {
   const cat = CATS[key];
   const a1 = `What kinds of ${key} do you like?`;
-  if (round === 1) {
+  if (role === 'A') { // 학생이 A: 친구는 고정된 취향으로 답함
     const p = partnerOf(key);
     const a2 = cat.useSome
       ? {
@@ -1643,11 +1644,17 @@ function buildRound(key, round) {
   ];
 }
 
+/** 라운드 순서: 라운드 1 = 학생이 B(추천하기), 라운드 2 = 학생이 A(추천 부탁하기) */
+const ROUND_ROLE = { 1: 'B', 2: 'A' };
+const buildRound = (key, round) => buildRole(key, ROUND_ROLE[round]);
+/** 대사 기록 키 (대사 id는 카테고리 안에서 겹치지 않음) */
+const recKey = (key, id) => `${key}_${id}`;
+
 function current() {
   const R = state.rp, key = CAT_KEYS[R.ci];
   const lines = buildRound(key, R.round);
   const line = lines[R.li];
-  return { R, key, lines, line, lk: `${key}_r${R.round}_${line.id}` };
+  return { R, key, lines, line, lk: recKey(key, line.id) };
 }
 const lineDone = rec => !!rec && (rec.passed || rec.needsPractice);
 
@@ -1692,7 +1699,7 @@ function renderRp() {
 function renderIntro(key) {
   const R = state.rp, cat = CATS[key], r = resolved(key);
   const first = R.ci === 0 && R.round === 1 && Object.keys(R.records).length === 0;
-  const body = R.round === 1
+  const body = ROUND_ROLE[R.round] === 'A'
     ? `<p>이번엔 내가 <b>A</b> — <b>추천을 부탁하는 사람</b>이에요.</p>
        <p class="sub">${cat.hintA1.replace('물어보세요.', '묻고,')} 추천해 달라고 부탁해요.</p>`
     : `<p>이번엔 내가 <b>B</b> — <b>추천하는 사람</b>이에요.</p>
@@ -1734,7 +1741,7 @@ async function playPartner(lk, text) {
 
 function renderLine() {
   const { R, key, lines, line, lk } = current();
-  $('#rpRound').textContent = `라운드 ${R.round} · 나는 ${R.round === 1 ? 'A (추천을 부탁하는 사람)' : 'B (추천하는 사람)'}`;
+  $('#rpRound').textContent = `라운드 ${R.round} · 나는 ${ROUND_ROLE[R.round] === 'A' ? 'A (추천을 부탁하는 사람)' : 'B (추천하는 사람)'}`;
 
   // 새로고침 직후에는 브라우저가 자동 재생을 막으므로 [듣기] 버튼을 누르게 함
   const needTap = !line.me && playingKey !== lk && navigator.userActivation && !navigator.userActivation.hasBeenActive;
@@ -1748,7 +1755,7 @@ function renderLine() {
       </div>`;
     }
     if (cur) return '';
-    const rec = R.records[`${key}_r${R.round}_${l.id}`];
+    const rec = R.records[recKey(key, l.id)];
     const bad = rec && rec.needsPractice;
     return `<div class="bubble me${bad ? ' practice' : ''}">
       <span class="en">${esc(l.text)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">나</span>
@@ -1829,9 +1836,9 @@ function advanceLine() {
 function renderSelf(key) {
   const R = state.rp, cat = CATS[key];
   let mine = 0, passed = 0;
-  [1, 2].forEach(round => buildRound(key, round).filter(l => l.me).forEach(l => {
+  ['B', 'A'].forEach(role => buildRole(key, role).filter(l => l.me).forEach(l => {
     mine++;
-    const rec = R.records[`${key}_r${round}_${l.id}`];
+    const rec = R.records[recKey(key, l.id)];
     if (rec && rec.passed) passed++;
   }));
   $('#rpSelf').innerHTML = `
@@ -1913,8 +1920,8 @@ document.addEventListener('keydown', e => {
 function summary() {
   const R = state.rp;
   let lines = 0, passed = 0, attempts = 0;
-  CAT_KEYS.forEach(k => [1, 2].forEach(round => buildRound(k, round).filter(l => l.me).forEach(l => {
-    const rec = R.records[`${k}_r${round}_${l.id}`];
+  CAT_KEYS.forEach(k => ['B', 'A'].forEach(role => buildRole(k, role).filter(l => l.me).forEach(l => {
+    const rec = R.records[recKey(k, l.id)];
     lines++;
     if (rec) { attempts += rec.attempts; if (rec.passed) passed++; }
   })));
@@ -1934,8 +1941,8 @@ function cardData() {
   const cats = CAT_KEYS.map(k => {
     const r = resolved(k);
     const title = titlesOf(genreOf(k)).find(t => t.en === r.rec);
-    const [A, B] = [1, 2].map(round => buildRound(k, round).filter(l => l.me).map(l => {
-      const rec = R.records[`${k}_r${round}_${l.id}`];
+    const [B, A] = ['B', 'A'].map(role => buildRole(k, role).filter(l => l.me).map(l => {
+      const rec = R.records[recKey(k, l.id)];
       return {
         id: l.id, text: l.text,
         attempts: rec ? rec.attempts : 0,
@@ -1945,11 +1952,11 @@ function cardData() {
     return {
       cat: CATS[k], kind: r.kind, adj: r.adj,
       rec: title && title.ko ? `${r.rec} (${title.ko})` : r.rec,
-      A, B, self: R.selfEval[k] || '-',
+      B, A, self: R.selfEval[k] || '-',
     };
   });
   let most = null;
-  cats.forEach(c => [...c.A, ...c.B].forEach(l => { if (!most || l.attempts > most.attempts) most = l; }));
+  cats.forEach(c => [...c.B, ...c.A].forEach(l => { if (!most || l.attempts > most.attempts) most = l; }));
   const date = new Date(R.finishedAt || Date.now());
   return { s: summary(), cats, most, date };
 }
@@ -2046,7 +2053,7 @@ function paintCard(ctx, d) {
     const entry = l => ({ ...l, lines: wrapText(ctx, l.text, colW - 32) });
     const A = c.A.map(entry), B = c.B.map(entry);
     const eh = e => 16 + 30 + e.lines.length * LH + 14;
-    const rows = [0, 1].map(i => Math.max(eh(A[i]), eh(B[i])));
+    const rows = [0, 1].map(i => Math.max(eh(B[i]), eh(A[i])));
     const blockH = P + 42 + 12 + 34 * 2 + 18 + 32 + rows[0] + 12 + rows[1] + P;
 
     roundBox(ctx, X, y, IW, blockH, 18, '#fbfcfe', CC.line);
@@ -2080,12 +2087,12 @@ function paintCard(ctx, d) {
 
     ctx.fillStyle = CC.muted;
     cardFont(ctx, 21, 700);
-    ctx.fillText('A 역할 · 추천 부탁하기', X + P, by);
-    ctx.fillText('B 역할 · 추천하기', X + P + colW + colGap, by);
+    ctx.fillText('B 역할 · 추천하기', X + P, by);
+    ctx.fillText('A 역할 · 추천 부탁하기', X + P + colW + colGap, by);
     by += 32;
 
     [0, 1].forEach(i => {
-      [A[i], B[i]].forEach((e, col) => {
+      [B[i], A[i]].forEach((e, col) => {
         const ex = X + P + col * (colW + colGap);
         const st = STATUS[e.status];
         roundBox(ctx, ex, by, colW, rows[i], 12, st.bg, st.border);
