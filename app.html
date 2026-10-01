@@ -243,6 +243,16 @@
 
   .msg.warn { background: var(--yellow-soft); color: #6b4d00; }
 
+  /* a/an + 단수: 채점하지 않고 바른 형태를 색으로만 보여 줌 */
+  .art { color: #7c3aed; background: #f1e9ff; border-radius: 6px; padding: 0 4px; white-space: nowrap; }
+  .msg .good { font-size: 19px; font-weight: 800; margin-bottom: 8px; }
+  .model {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 14px; margin-bottom: 12px; border-radius: 10px; background: #fff; color: var(--ink);
+  }
+  .model .target { flex: 1 1 260px; font-size: 22px; line-height: 1.5; }
+  body.tts-on #rpHear { opacity: .4; pointer-events: none; }
+
   /* ---------- 화면 4 ---------- */
   .result-card { display: block; width: 100%; height: auto; border-radius: 10px; }
 
@@ -769,8 +779,18 @@ function similarity(a, b) {
   return max ? 1 - levenshtein(a, b) / max : 1;
 }
 /** 인식된 문장 안에서 조각과 가장 비슷한 부분의 유사도 (0~1) */
+/**
+ * 채점용 정리: a/an과 복수형 -s는 보지 않는다.
+ * (바른 형태는 통과한 뒤 목표 문장으로 보여 줌)
+ */
+function loose(s) {
+  return normalize(s).split(' ')
+    .filter(w => w !== 'a' && w !== 'an')
+    .map(w => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w))
+    .join(' ');
+}
 function fragmentScore(text, fragment) {
-  const t = normalize(text), f = normalize(fragment);
+  const t = loose(text), f = loose(fragment);
   if (!f) return 1;
   if ((' ' + t + ' ').includes(' ' + f + ' ')) return 1;
   const tw = t.split(' ').filter(Boolean), n = f.split(' ').length;
@@ -1614,6 +1634,7 @@ function buildRole(key, role) {
         // 제시어는 문장에 들어가는 그대로 단수로 보여 줌 (예: musical movie)
         ko: `친구가 좋아하는 종류(${p.single.replace(/^an? /, '')}) 하나를 추천해 달라고 부탁하세요. (a/an 사용)`,
         frags: ['can you recommend', 'for me'],
+        hl: p.single, // a/an + 단수: 채점하지 않고 색으로만 보여 줌
         extras: [p.single.replace(/^an? /, '')],
       };
     return [
@@ -1672,10 +1693,18 @@ function scoreAlts(alts, line) {
   return best;
 }
 
+/** 문장 속 a/an + 단수 부분(line.hl)에 색 표시 */
+function markHL(text, hl) {
+  const html = esc(text);
+  if (!hl) return html;
+  const h = esc(hl), i = html.indexOf(h);
+  return i < 0 ? html : html.slice(0, i) + `<span class="art">${h}</span>` + html.slice(i + h.length);
+}
+
 function scaffoldHTML(line, level, peeked) {
-  if (level === 1 || peeked) return `<div class="target en">${esc(line.text)}</div>`;
+  if (level === 1 || peeked) return `<div class="target en">${markHL(line.text, line.hl)}</div>`;
   if (level === 2) {
-    return `<div class="target en">${esc(line.tpl).replace(/\[([^\]]+)\]/g,
+    return `<div class="target en">${markHL(line.tpl, line.hl).replace(/\[([^\]]+)\]/g,
       (m, w) => `<span class="gap" style="width:${Math.max(2.5, w.length * 0.62)}em"></span>`)}</div>`;
   }
   return `<div class="ko-hint">${esc(line.ko)}</div>`;
@@ -1760,7 +1789,7 @@ function renderLine() {
     const rec = R.records[recKey(key, l.id)];
     const bad = rec && rec.needsPractice;
     return `<div class="bubble me${bad ? ' practice' : ''}">
-      <span class="en">${esc(l.text)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">나</span>
+      <span class="en">${markHL(l.text, l.hl)}</span><span>${bad ? '🟨' : '✅'}</span><span class="who2">나</span>
     </div>`;
   }).join('');
   $$('#rpLog .replay').forEach(b => b.addEventListener('click', () => {
@@ -1783,7 +1812,9 @@ function renderLine() {
 
   $('#rpLevel').textContent = LEVELS[rec.level];
   $('#rpTry').textContent = done ? `시도 ${rec.attempts}번` : `시도 ${rec.attempts + 1} / ${MAX_TRIES}`;
-  $('#rpScaffold').innerHTML = scaffoldHTML(line, done ? 1 : rec.level, rec.peeked);
+  // 끝난 대사는 아래 결과 칸에 바른 문장을 보여 주므로 위쪽 문장은 숨김
+  $('#rpScaffold').hidden = done;
+  $('#rpScaffold').innerHTML = done ? '' : scaffoldHTML(line, rec.level, rec.peeked);
   $('#rpPeek').hidden = done || rec.level === 1 || rec.peeked;
   $('#rpSpeak').hidden = done;
   $('#rpMicBtn').hidden = Mic.ready;
@@ -1797,20 +1828,24 @@ function renderLine() {
   } else {
     const chips = rec.frags.map(x => `<span class="frag en ${x.ok ? 'ok' : ''}">${x.ok ? '✅' : '⬜'} ${esc(x.f)}</span>`).join('')
       + rec.extras.map(x => `<span class="frag en extra" title="채점하지 않아요">${x.ok ? '●' : '○'} ${esc(x.f)}</span>`).join('');
-    let type, note;
+    const heard = `<div>이렇게 들렸어요:</div><div class="heard en">“${esc(rec.heard)}”</div><div class="frags">${chips}</div>`;
+    // 끝난 대사: 바른 문장을 한 번 보여 주고 다시 들을 수 있게 함
+    const model = `<div class="model">
+        <div class="target en">${markHL(line.text, line.hl)}</div>
+        <button type="button" class="btn" id="rpHear">🔊 한 번 더 듣기</button>
+      </div>`;
     if (rec.passed) {
-      type = 'ok';
-      note = '✅ 통과!' + (rec.attempts === 1 && !rec.peeked && rec.level < 3 ? ' 다음 대사는 도움을 한 단계 줄여 볼게요.' : '');
+      const less = rec.attempts === 1 && !rec.peeked && rec.level < 3;
+      showMsg(res, 'ok', `<div class="good">✅ 좋아요!</div>${model}
+        ${less ? '<div class="sub" style="margin:0 0 10px">다음 대사는 도움을 한 단계 줄여 볼게요.</div>' : ''}${heard}`);
     } else if (rec.needsPractice) {
-      type = 'warn';
-      note = '🟨 ‘다시 연습 필요’로 기록했어요. 괜찮아요, 다음 대사로 가요!';
+      showMsg(res, 'warn', `<div class="good">🟨 ‘다시 연습 필요’로 기록했어요. 괜찮아요, 다음 대사로 가요!</div>${model}${heard}`);
     } else {
-      type = 'err';
-      note = `⬜ 표시된 부분을 살려서 다시 말해 보세요. (남은 기회 ${MAX_TRIES - rec.attempts}번)`
-        + (rec.dropped ? ' 도움을 한 단계 늘렸어요.' : '');
+      showMsg(res, 'err', `${heard}<div style="margin-top:8px">⬜ 표시된 부분을 살려서 다시 말해 보세요. (남은 기회 ${MAX_TRIES - rec.attempts}번)`
+        + (rec.dropped ? ' 도움을 한 단계 늘렸어요.' : '') + '</div>');
     }
-    showMsg(res, type, `<div>이렇게 들렸어요:</div><div class="heard en">“${esc(rec.heard)}”</div>
-      <div class="frags">${chips}</div><div style="margin-top:8px">${note}</div>`);
+    const hear = $('#rpHear', res);
+    if (hear) hear.addEventListener('click', () => { if (!TTS.busy) TTS.speak(line.text); });
   }
 
   if (!done && Mic.ready) PTT.active = rpPtt;
