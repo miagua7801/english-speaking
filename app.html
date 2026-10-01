@@ -349,14 +349,11 @@
   <!-- ======================= 화면 1: 시작 ======================= -->
   <section class="screen" data-screen="1" hidden>
     <h1>말하기 연습을 시작해요</h1>
-    <p class="lead">이름을 쓰고, 소리와 마이크를 확인한 뒤 시작해요.</p>
+    <p class="lead">번호를 쓰고, 소리와 마이크를 확인한 뒤 시작해요.</p>
 
     <div class="card">
-      <h2>① 내 정보</h2>
+      <h2>① 내 번호</h2>
       <div class="row">
-        <label class="field"><span>이름</span>
-          <input type="text" id="name" autocomplete="off" placeholder="예: 김민준">
-        </label>
         <label class="field" style="flex:0 1 140px"><span>번호</span>
           <input type="text" id="num" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="예: 7">
         </label>
@@ -680,7 +677,7 @@ function defaultState() {
   return {
     v: 2,
     screen: 1,
-    profile: { name: '', num: '' },
+    profile: { num: '' },
     settings: { mode: 'hold', rate: 0.85, volume: 1 },
     micTested: false,
     step: 0,
@@ -695,13 +692,12 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (!saved) return base;
-    // 입력 방식이 바뀐 v1 저장본: 이름·설정만 살리고 선택은 새로 받음
-    Object.assign(base.profile, saved.profile);
+    // 입력 방식이 바뀐 v1 저장본: 번호·설정만 살리고 선택은 새로 받음
+    // (예전 저장본의 이름은 가져오지 않음)
+    base.profile.num = String((saved.profile && saved.profile.num) || '');
     Object.assign(base.settings, saved.settings);
     base.micTested = !!saved.micTested;
     if (saved.v !== 2) return base;
-    Object.assign(base.profile, saved.profile);
-    Object.assign(base.settings, saved.settings);
     Object.keys(CATS).forEach(k => Object.assign(base.choices[k], saved.choices && saved.choices[k]));
     base.screen = saved.screen || 1;
     base.step = Math.min(saved.step || 0, CAT_KEYS.length - 1);
@@ -1195,9 +1191,9 @@ function renderHeader() {
   cb.hidden = !CLASS_NAME;
   cb.textContent = CLASS_NAME;
   const sb = $('#studentBadge');
-  const { name, num } = state.profile;
-  sb.hidden = !(state.screen > 1 && name);
-  sb.textContent = `${num}번 ${name}`;
+  const { num } = state.profile;
+  sb.hidden = !(state.screen > 1 && num);
+  sb.textContent = `${num}번`;
 }
 
 $('#resetBtn').addEventListener('click', () => {
@@ -1209,10 +1205,8 @@ $('#resetBtn').addEventListener('click', () => {
 /* =========================================================
  * 화면 1 — 시작
  * ========================================================= */
-const nameEl = $('#name'), numEl = $('#num');
-nameEl.value = state.profile.name;
+const numEl = $('#num');
 numEl.value = state.profile.num;
-nameEl.addEventListener('input', () => { state.profile.name = nameEl.value; save(); });
 numEl.addEventListener('input', () => {
   numEl.value = numEl.value.replace(/\D/g, '').slice(0, 2);
   state.profile.num = numEl.value;
@@ -1316,10 +1310,10 @@ renderMicOk();
 let skipTestWarned = false;
 $('#startBtn').addEventListener('click', () => {
   const startMsg = $('#startMsg');
-  const name = nameEl.value.trim(), num = numEl.value.trim();
-  if (!name || !num) {
-    showMsg(startMsg, 'err', '✍️ <b>이름</b>과 <b>번호</b>를 먼저 써 주세요.');
-    (name ? numEl : nameEl).focus();
+  const num = numEl.value.trim();
+  if (!num) {
+    showMsg(startMsg, 'err', '✍️ <b>번호</b>를 먼저 써 주세요.');
+    numEl.focus();
     return;
   }
   if (!state.micTested && !skipTestWarned) {
@@ -1328,7 +1322,6 @@ $('#startBtn').addEventListener('click', () => {
     return;
   }
   startMsg.hidden = true;
-  state.profile.name = name;
   state.profile.num = num;
   if (!state.startedAt) state.startedAt = Date.now();
   go(2);
@@ -2006,7 +1999,7 @@ function paintCard(ctx, d) {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, ctx.canvas.height);
 
-  // 머리말: 이름 · 번호 · 날짜
+  // 머리말: 번호 · 날짜
   const HB = 160;
   ctx.fillStyle = CC.primary;
   ctx.fillRect(0, 0, W, HB);
@@ -2018,7 +2011,7 @@ function paintCard(ctx, d) {
   ctx.fillText('추천 요청 롤플레이 결과', X, 70);
   ctx.textAlign = 'right';
   cardFont(ctx, 30, 700);
-  ctx.fillText(`${state.profile.num}번 ${state.profile.name}`, W - X, 40);
+  ctx.fillText(`${state.profile.num}번`, W - X, 40);
   cardFont(ctx, 23, 500);
   const dateStr = `${d.date.getFullYear()}.${two(d.date.getMonth() + 1)}.${two(d.date.getDate())}`;
   ctx.fillText(CLASS_NAME ? `${CLASS_NAME} · ${dateStr}` : dateStr, W - X, 86);
@@ -2168,12 +2161,12 @@ function drawCard() {
   return used;
 }
 
-/** 파일명: 학급_번호_이름_날짜.png (예: 2-3_07_김민준_20260929.png) */
+/** 파일명: 학급_번호_날짜.png (예: 2-3_07_20260929.png) */
 function cardFileName() {
   const dt = new Date(state.rp.finishedAt || Date.now());
   const date = `${dt.getFullYear()}${two(dt.getMonth() + 1)}${two(dt.getDate())}`;
   const safe = s => String(s).trim().replace(/[\\/:*?"<>|\s]+/g, '');
-  return [safe(CLASS_NAME), two(state.profile.num), safe(state.profile.name), date].filter(Boolean).join('_') + '.png';
+  return [safe(CLASS_NAME), two(state.profile.num), date].filter(Boolean).join('_') + '.png';
 }
 
 function renderScreen4() {
@@ -2215,9 +2208,9 @@ $('#saveCard').addEventListener('click', () => {
 /* =========================================================
  * 화면 5: 패들렛 제출
  * ========================================================= */
-/** 패들렛 글 제목: 학급 번호 이름 (예: 2-3 07번 김민준) */
+/** 패들렛 글 제목: 학급 번호 (예: 2-3 07번) */
 function postTitle() {
-  return [CLASS_NAME, `${two(state.profile.num)}번`, String(state.profile.name).trim()].filter(Boolean).join(' ');
+  return [CLASS_NAME, `${two(state.profile.num)}번`].filter(Boolean).join(' ');
 }
 
 function submitSteps() {
@@ -2227,14 +2220,14 @@ function submitSteps() {
         ? `저장한 파일: <b>${esc(cardFileName())}</b> (파일 앱 → 다운로드)`
         : '아직 저장하지 않았다면 아래 버튼을 눌러요. 저장이 안 되면 결과 카드 화면을 캡처해요.',
       extra: '<button type="button" class="btn" data-act="save">이미지로 저장</button>' },
-    { id: 'name', t: '이름을 복사해요',
+    { id: 'name', t: '번호를 복사해요',
       d: '<b>복사</b>를 누르면 패들렛 제목 칸에 붙여 넣을 수 있어요.',
       extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">복사</button></div>` },
     { id: 'post', t: '패들렛에 올려요',
       d: `<ol class="howto">
           <li>아래 <b>패들렛 열기</b>를 눌러 패들렛을 열어요. (이 앱 탭은 닫지 마세요)</li>
           <li>오른쪽 아래 동그란 <b>＋</b> 버튼을 눌러요.</li>
-          <li>제목 칸에 이름을 붙여 넣어요. <kbd>Ctrl</kbd> + <kbd>V</kbd></li>
+          <li>제목 칸에 번호를 붙여 넣어요. <kbd>Ctrl</kbd> + <kbd>V</kbd></li>
           <li><b>업로드</b> → <b>파일 앱의 다운로드 폴더</b>에서 결과 카드 이미지를 골라요.</li>
           <li><b>게시</b> 버튼을 눌러요.</li>
         </ol>`,
@@ -2319,7 +2312,7 @@ $('#backToCard').addEventListener('click', () => go(4));
  * ========================================================= */
 renderBanners();
 let startScreen = state.screen;
-if (startScreen >= 2 && !(state.profile.name && state.profile.num)) startScreen = 1;
+if (startScreen >= 2 && !state.profile.num) startScreen = 1;
 if (startScreen >= 3 && !CAT_KEYS.every(k => validate(k).length === 0)) startScreen = 2;
 if (startScreen >= 4 && !(state.rp && state.rp.phase === 'done')) startScreen = 3;
 go(startScreen);
