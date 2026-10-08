@@ -830,12 +830,58 @@ window.addEventListener('online', () => { renderBanners(); PTT.refreshAll(); });
 window.addEventListener('offline', () => { renderBanners(); PTT.refreshAll(); });
 
 /* =========================================================
- * TTS (말하기 · 상대 대사)
+ * 녹음한 음성 파일 (친구 대사 21개)
+ * 문장이 같으면 TTS 대신 audio/ 파일을 튼다. 파일이 없는 문장(학생 B2 등)은 TTS.
+ *  - {종류}_a1 / {종류}_a2_{장르 id} / {종류}_b1 / {종류}_b2 (b1·b2는 친구 취향)
+ * ========================================================= */
+const AUDIO_DIR = 'audio/';
+let audioMap = null;
+function audioFile(text) {
+  if (!audioMap) {
+    audioMap = new Map();
+    Object.keys(CATS).forEach(key => {
+      const cat = CATS[key], p = cat.partner;
+      audioMap.set(`What kinds of ${key} do you like?`, `${key}_a1.mp3`);
+      [...cat.items, ...cat.others].forEach(g => audioMap.set(
+        cat.useSome ? `Can you recommend some ${g.plural} for me?` : `Can you recommend ${g.single} for me?`,
+        `${key}_a2_${g.id}.mp3`));
+      audioMap.set(`I like ${p.kind}.`, `${key}_b1.mp3`);
+      audioMap.set(`Sure. I recommend ${p.rec}. It's really ${p.adj}.`, `${key}_b2.mp3`);
+    });
+  }
+  const f = audioMap.get(text);
+  return f ? AUDIO_DIR + f : null;
+}
+// 녹음은 보통 빠르기라서, TTS '보통'(0.85)을 원래 속도 1배로 맞춤
+const AUDIO_RATE_BASE = 0.85;
+
+/* =========================================================
+ * TTS (말하기 · 상대 대사) — 음성 파일이 있으면 파일을 재생
  * ========================================================= */
 const TTS = {
   voice: null,
   busy: false,
   current: null, // 크롬에서 재생 도중 사라지지 않도록 참조 유지
+  seq: 0,        // 마지막 speak 호출 번호 (앞선 호출이 잠금을 풀지 않도록)
+  clips: {},     // 파일 주소 → Audio
+  onStop: null,  // 재생 중인 파일을 멈출 때 그 호출을 끝냄
+  clip(url) {
+    if (!TTS.clips[url]) {
+      const a = new Audio(url);
+      a.preload = 'auto';
+      TTS.clips[url] = a;
+    }
+    return TTS.clips[url];
+  },
+  /** 롤플레이에 쓰는 파일을 미리 받아 둠 */
+  preload() {
+    audioFile('');
+    audioMap.forEach(f => { if (CAT_KEYS.some(k => f.startsWith(k + '_'))) TTS.clip(AUDIO_DIR + f); });
+  },
+  stop() {
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    if (TTS.onStop) { const f = TTS.onStop; TTS.onStop = null; f(); }
+  },
   loadVoices() {
     const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
     const en = voices.filter(v => /^en[-_]US/i.test(v.lang));
@@ -847,29 +893,52 @@ const TTS = {
       null;
   },
   speak(text) {
+    TTS.stop();
+    const seq = ++TTS.seq;
+    TTS.setBusy(true);
     return new Promise(resolve => {
-      if (!window.speechSynthesis) { resolve(); return; }
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      if (TTS.voice) u.voice = TTS.voice;
-      u.rate = state.settings.rate;
-      u.volume = state.settings.volume;
-      TTS.current = u;
-      TTS.setBusy(true);
-      let done = false;
+      let done = false, guard = null, synthStarted = false;
       const finish = () => {
         if (done) return;
         done = true;
         clearTimeout(guard);
         // 스피커 여운이 인식되지 않도록 잠깐 더 잠금
-        setTimeout(() => { TTS.setBusy(false); resolve(); }, 350);
+        setTimeout(() => { if (seq === TTS.seq) TTS.setBusy(false); resolve(); }, 350);
       };
-      // 이벤트가 오지 않는 경우를 대비한 안전장치
-      const guard = setTimeout(finish, 3000 + text.length * 130 / state.settings.rate);
-      u.onend = finish;
-      u.onerror = finish;
-      speechSynthesis.speak(u);
+      const synth = () => {
+        if (done || synthStarted || seq !== TTS.seq) return;
+        synthStarted = true;
+        clearTimeout(guard);
+        TTS.onStop = null;
+        if (!window.speechSynthesis) { finish(); return; }
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        if (TTS.voice) u.voice = TTS.voice;
+        u.rate = state.settings.rate;
+        u.volume = state.settings.volume;
+        TTS.current = u;
+        // 이벤트가 오지 않는 경우를 대비한 안전장치
+        guard = setTimeout(finish, 3000 + text.length * 130 / state.settings.rate);
+        u.onend = finish;
+        u.onerror = finish;
+        speechSynthesis.speak(u);
+      };
+
+      const url = audioFile(text);
+      if (!url) { synth(); return; }
+      const a = TTS.clip(url);
+      a.onended = finish;
+      a.onerror = synth; // 파일을 못 받으면 TTS로
+      a.playbackRate = state.settings.rate / AUDIO_RATE_BASE;
+      a.volume = state.settings.volume;
+      try { a.currentTime = 0; } catch (e) { /* 아직 못 받은 파일 */ }
+      TTS.onStop = () => { a.pause(); finish(); };
+      guard = setTimeout(finish, 15000);
+      a.play().catch(e => {
+        // 자동 재생이 막힌 경우는 TTS도 막히므로 그냥 끝냄
+        if (e.name === 'NotAllowedError') finish();
+        else if (e.name !== 'AbortError') synth();
+      });
     });
   },
   setBusy(b) {
@@ -1205,6 +1274,7 @@ function go(n) {
   PTT.active = n === 1 ? testPtt : null;
   if (n === 2) renderStep();
   if (n === 3) {
+    TTS.preload();
     if (!state.rp) { state.rp = newRp(); save(); }
     renderRp();
   }
