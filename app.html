@@ -184,6 +184,15 @@
   }
   .nav-row { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
   .done-box { text-align: center; padding: 26px 20px; }
+
+  /* 개인정보 처리방침 안내 (화면 1 · 5) */
+  .privacy-box {
+    margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); text-align: center;
+  }
+  .privacy-box p { margin: 0 0 10px; font-size: 15px; color: var(--muted); }
+  .privacy-box .btn { font-size: 15px; padding: 8px 14px; text-decoration: none; }
+  .privacy-link { margin: 24px 0 0; text-align: center; font-size: 13px; }
+  .privacy-link a { color: var(--muted); }
   .done-box .big-emoji { font-size: 56px; line-height: 1.2; }
 
   /* ---------- 화면 2 ---------- */
@@ -420,6 +429,11 @@
       <div id="startMsg" hidden></div>
       <button type="button" class="btn primary big" id="startBtn" style="margin-top:12px">시작하기 ▶</button>
     </div>
+
+    <div class="privacy-box">
+      <p>이름은 받지 않습니다. 연습 기록은 이 기기에만 저장됩니다.</p>
+      <a class="btn" href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a>
+    </div>
   </section>
 
   <!-- ======================= 화면 2: 종류 고르기 ======================= -->
@@ -522,6 +536,7 @@
     <div class="nav-row">
       <button type="button" class="btn" id="backToCard">◀ 결과 카드로 돌아가기</button>
     </div>
+    <p class="privacy-link"><a href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a></p>
   </section>
 </main>
 
