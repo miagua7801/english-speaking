@@ -548,6 +548,7 @@
  * 설정 · 내용
  * ========================================================= */
 const STORE_KEY = 'roleplay_recommend_v1';
+const STALE_MS = 60 * 60 * 1000; // 이보다 오래된 진행 기록은 이어 하지 않음
 
 const params = new URLSearchParams(location.search);
 const CLASS_NAME = (params.get('class') || '').trim();
@@ -718,6 +719,13 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (!saved) return base;
+    // 제출까지 끝냈거나 시작한 지 1시간이 지난 기록은 다른 학생(다음 반)이 쓰는 것으로 보고
+    // 소리 설정만 살려 처음부터
+    const stale = saved.startedAt && Date.now() - saved.startedAt > STALE_MS;
+    if ((saved.submit && saved.submit.done) || stale) {
+      Object.assign(base.settings, saved.settings);
+      return base;
+    }
     // 입력 방식이 바뀐 v1 저장본: 번호·설정만 살리고 선택은 새로 받음
     // (예전 저장본의 이름은 가져오지 않음)
     base.profile.num = String((saved.profile && saved.profile.num) || '');
