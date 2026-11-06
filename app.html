@@ -193,8 +193,8 @@
   .rv-tries small { display: block; padding-left: 30px; font-size: 13px; font-weight: 600; color: var(--muted); }
   .rv-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; font-weight: 700; }
   .rv-foot .btn { padding: 6px 14px; font-size: 14px; }
-  .rv-px { margin-left: 6px; padding: 1px 10px; border-radius: 999px; font-size: 13px; background: var(--card); color: var(--ink); white-space: nowrap; }
-  .rv-px.ok { background: var(--green); }
+  .rv-tries li.pxl-first { margin-top: 2px; padding-top: 8px; border-top: 1.5px dashed var(--yellow); }
+  .rv-tries li.pxl > b { color: var(--primary); }
   .px { margin-top: 10px; padding: 14px 16px; border-radius: 12px; background: var(--card); border: 2px solid var(--primary);
     display: flex; flex-direction: column; gap: 10px; }
   .px .target { font-size: 22px; line-height: 1.5; }
@@ -2422,16 +2422,26 @@ function reviewData() {
     if (!rec || !rec.attempts) return;
     const it = { key: k, lk, cat: CATS[k], line: l, id: l.id, text: l.text, rec };
     if (rec.passed && rec.attempts === 1) once.push(it);
-    else items.push(Object.assign(it, { tries: triesOf(rec), tip: nextTip(k, rec) }));
+    else {
+      const tries = [...triesOf(rec), ...pxTriesOf(rec)];
+      items.push(Object.assign(it, { tries, tip: nextTip(k, tries), passed: rec.passed || pxPassed(rec) }));
+    }
   })));
   return { items, once, goal: goalTip(items) };
 }
 
 /** 시도별 기록. 기록을 모으기 전 저장본은 마지막 시도만 있음 */
 function triesOf(rec) {
-  if (rec.tries && rec.tries.length) return rec.tries.map((t, i) => Object.assign({ n: i + 1 }, t));
-  return [{ n: rec.attempts, heard: rec.heard, miss: (rec.frags || []).filter(x => !x.ok).map(x => x.f) }];
+  if (rec.tries && rec.tries.length) return rec.tries.map((t, i) => Object.assign({ label: `${i + 1}차` }, t));
+  return [{ label: `${rec.attempts}차`, heard: rec.heard, miss: (rec.frags || []).filter(x => !x.ok).map(x => x.f) }];
 }
+
+/** 결과 카드 2에서 연습한 기록 (연습 1, 연습 2 …) */
+function pxTriesOf(rec) {
+  const list = rec.px && Array.isArray(rec.px.tries) ? rec.px.tries : [];
+  return list.map((t, i) => Object.assign({ label: `연습 ${i + 1}`, px: true, first: i === 0 }, t));
+}
+const pxPassed = rec => pxTriesOf(rec).some(t => !t.miss.length);
 
 /** 놓친 조각 → 다음에 할 일 */
 function tipFor(key, frag) {
@@ -2452,9 +2462,11 @@ function tipFor(key, frag) {
   return `${frag}을(를) 빠뜨리지 말고 말해요.`;
 }
 
-/** 마지막으로 틀린 시도의 첫 번째 놓친 조각 */
-function nextTip(key, rec) {
-  const failed = triesOf(rec).filter(t => t.miss && t.miss.length);
+/** 마지막 시도가 연습 통과면 칭찬, 아니면 마지막으로 틀린 시도의 첫 번째 놓친 조각 */
+function nextTip(key, tries) {
+  const last = tries[tries.length - 1];
+  if (last && last.px && !last.miss.length) return '처음부터 문장 보기 없이 한 번에 말해 봐요.';
+  const failed = tries.filter(t => t.miss && t.miss.length);
   if (!failed.length) return '이번엔 문장 보기 없이 한 번에 말해 봐요.';
   return tipFor(key, failed[failed.length - 1].miss[0]);
 }
@@ -2472,8 +2484,7 @@ function goalTip(items) {
   return items.length ? '이번엔 문장 보기 없이 한 번에 말해 봐요.' : '모든 문장을 한 번에 통과했어요! 다음엔 더 빠르게 말해 봐요.';
 }
 
-const statusText = rec => (rec.passed ? `${rec.attempts}번 만에 통과` : '다시 연습');
-const pxText = px => (px.passed ? `연습 통과 ✓ (${px.tries}번)` : `연습 ${px.tries}번`);
+const statusText = rec => (rec.passed ? `${rec.attempts}번 만에 통과` : pxPassed(rec) ? '연습으로 통과' : '다시 연습');
 const triedLine = t => (t.miss && t.miss.length ? `✕ 놓친 부분: ${t.miss.join(' / ')}` : '✓ 통과');
 
 let pxKey = null; // 지금 연습 중인 대사
@@ -2504,15 +2515,15 @@ function renderCard2() {
       <div class="c2-goal"><span>다음 목표</span><b>${esc(rv.goal)}</b></div>
       <h3>다시 볼 문장 ${rv.items.length}개<small>말한 문장은 크롬이 알아들은 글자예요</small></h3>
       ${rv.items.length ? `<div class="rv-list">${rv.items.map(it => `
-        <div class="rv${it.rec.passed ? ' pass' : ''}" data-lk="${it.lk}">
+        <div class="rv${it.passed ? ' pass' : ''}" data-lk="${it.lk}">
           <div class="rv-top"><span>${it.cat.emoji} ${it.cat.label} · ${it.id}</span><span class="st">${statusText(it.rec)}</span></div>
           <div class="rv-text en">${esc(it.text)}</div>
           <ol class="rv-tries">${it.tries.map(t => `
-            <li><b>${t.n}차</b> <span class="en">“${esc(t.heard)}”</span><small>${esc(triedLine(t))}</small></li>`).join('')}
+            <li class="${t.px ? 'pxl' : ''}${t.first ? ' pxl-first' : ''}"><b>${t.label}</b> <span class="en">“${esc(t.heard)}”</span><small>${esc(triedLine(t))}</small></li>`).join('')}
           </ol>
           <div class="rv-foot">
-            <span>→ 다음엔: ${esc(it.tip)}${it.rec.px ? `<span class="rv-px${it.rec.px.passed ? ' ok' : ''}">${pxText(it.rec.px)}</span>` : ''}</span>
-            <button type="button" class="btn primary" data-px="${it.lk}">연습하기</button>
+            <span>→ 다음엔: ${esc(it.tip)}</span>
+            <button type="button" class="btn primary" data-px="${it.lk}">${pxTriesOf(it.rec).length ? '또 연습하기' : '연습하기'}</button>
           </div>
         </div>`).join('')}</div>` : '<p style="margin:0">모든 문장을 한 번에 통과했어요! 🎉</p>'}
       <h3>한 번에 통과한 문장 ${rv.once.length}개</h3>
@@ -2576,17 +2587,15 @@ const pxPtt = PTT.create($('#pxPtt'), {
     const it = findItem(pxKey);
     if (!it) return;
     const sc = scoreAlts(alts, it.line);
-    const px = it.rec.px = it.rec.px || { tries: 0, passed: false };
-    px.tries++;
-    if (sc.pass) px.passed = true;
+    const px = it.rec.px = it.rec.px && Array.isArray(it.rec.px.tries) ? it.rec.px : { tries: [] };
+    px.tries.push({ heard: sc.text, miss: sc.frags.filter(x => !x.ok).map(x => x.f) });
     save();
-    const chips = sc.frags.map(x => `<span class="frag en ${x.ok ? 'ok' : 'miss'}">${x.ok ? '✓' : '✕'} ${esc(x.f)}</span>`).join('');
-    const heard = `<div>이렇게 들렸어요:</div><div class="heard en">“${esc(sc.text)}”</div><div class="frags">${chips}</div>`;
-    showMsg($('#pxRes'), sc.pass ? 'ok' : 'err', sc.pass
-      ? `<div class="good"><span class="mark ok">✓</span> 좋아요! 이번엔 통과했어요.</div>${heard}`
-      : `${heard}<div style="margin-top:8px">✕ 표시된 부분을 살려서 다시 말해 보세요.</div>`);
+    const lk = pxKey;
+    closePractice();
     renderCard2();
     drawCard2();
+    const b = $(`#card2 [data-px="${lk}"]`);
+    if (b) { b.focus({ preventScroll: true }); b.closest('.rv').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   },
   onError(html) { showMsg($('#pxRes'), 'err', html); },
 });
@@ -2639,16 +2648,15 @@ function paintCard2(ctx, d) {
     const tl = wrapText(ctx, it.text, iw);
     const tries = it.tries.map(t => {
       cardFont(ctx, 23, 500);
-      const lines = wrapText(ctx, `${t.n}차  “${t.heard}”`, iw);
+      const lines = wrapText(ctx, `${t.label}  “${t.heard}”`, iw);
       cardFont(ctx, 20, 600);
-      return { lines, sub: wrapText(ctx, triedLine(t), iw - 36) };
+      return { lines, sub: wrapText(ctx, triedLine(t), iw - 36), px: t.px, first: t.first };
     });
     cardFont(ctx, 23, 800);
     const tip = wrapText(ctx, `→ 다음엔: ${it.tip}`, iw);
-    const px = it.rec.px ? pxText(it.rec.px) : '';
-    const triesH = tries.reduce((n, t) => n + t.lines.length * 32 + t.sub.length * 28 + 10, 0);
-    const h = P + 28 + 8 + tl.length * 38 + 12 + triesH + (px ? 32 : 0) + 4 + tip.length * 32 + P;
-    const pass = it.rec.passed;
+    const triesH = tries.reduce((n, t) => n + t.lines.length * 32 + t.sub.length * 28 + 10 + (t.first ? 14 : 0), 0);
+    const h = P + 28 + 8 + tl.length * 38 + 12 + triesH + 4 + tip.length * 32 + P;
+    const pass = it.passed;
     roundBox(ctx, X, y, IW, h, 16, pass ? CC.greenSoft : CC.yellowSoft, pass ? CC.green : CC.yellow);
     let by = y + P;
     ctx.fillStyle = CC.muted;
@@ -2663,20 +2671,25 @@ function paintCard2(ctx, d) {
     tl.forEach(ln => { ctx.fillText(ln, X + P, by); by += 38; });
     by += 12;
     tries.forEach(t => {
-      ctx.fillStyle = CC.ink;
-      cardFont(ctx, 23, 500);
+      if (t.first) { // 연습 기록 앞 점선
+        ctx.strokeStyle = CC.yellow;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.moveTo(X + P, by + 2);
+        ctx.lineTo(W - X - P, by + 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        by += 14;
+      }
+      ctx.fillStyle = t.px ? CC.primary : CC.ink;
+      cardFont(ctx, 23, t.px ? 700 : 500);
       t.lines.forEach(ln => { ctx.fillText(ln, X + P, by); by += 32; });
       ctx.fillStyle = CC.muted;
       cardFont(ctx, 20, 600);
       t.sub.forEach(ln => { ctx.fillText(ln, X + P + 36, by); by += 28; });
       by += 10;
     });
-    if (px) {
-      ctx.fillStyle = CC.ink;
-      cardFont(ctx, 21, 700);
-      ctx.fillText(px, X + P, by);
-      by += 32;
-    }
     by += 4;
     ctx.fillStyle = CC.ink;
     cardFont(ctx, 23, 800);
