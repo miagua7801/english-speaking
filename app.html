@@ -162,50 +162,36 @@
   .start-area { text-align: center; margin-top: 8px; }
   .start-area .msg { text-align: left; }
 
-  /* ---------- 화면 5: 결과 카드 2 · 다시 볼 문장 ---------- */
-  .c2 { background: var(--card); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px;
-    box-shadow: 0 1px 2px rgba(30, 36, 80, .08), 0 0 0 1px rgba(30, 36, 80, .04); }
-  .c2-head {
-    display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap;
-    padding: 18px 22px 16px; background: var(--primary); color: var(--card); border-bottom: 6px solid var(--speak);
+  /* ---------- 화면 5 ---------- */
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .steps > li {
+    display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+    border: 1.5px solid var(--line); border-radius: 12px; background: var(--card);
   }
-  .c2-head small { display: block; font-size: 13px; font-weight: 600; opacity: .85; }
-  .c2-head b { font-size: 21px; font-weight: 800; }
-  .c2-head .who-num { text-align: right; font-size: 14px; }
-  .c2-head .who-num b { display: block; font-size: 18px; }
-  .c2-body { padding: 18px 20px 22px; display: flex; flex-direction: column; gap: 16px; }
-  .c2-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .c2-sum div { background: var(--soft); border-radius: 12px; padding: 12px 14px; min-width: 0; }
-  .c2-sum span { display: block; font-size: 13px; font-weight: 600; color: var(--muted); }
-  .c2-sum b { font-size: 24px; font-weight: 800; }
-  .c2-goal { background: var(--red-soft); border-radius: 12px; padding: 12px 16px; }
-  .c2-goal span { display: block; font-size: 13px; font-weight: 700; color: var(--muted); }
-  .c2-goal b { font-size: 18px; }
-  .c2 h3 { margin: 4px 0 0; font-size: 18px; font-weight: 800; }
-  .c2 h3 small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
-  .rv-list { display: flex; flex-direction: column; gap: 10px; }
-  .rv { border: 1.5px solid var(--yellow); background: var(--yellow-soft); border-radius: 12px; padding: 12px 14px; }
-  .rv.pass { border-color: var(--green); background: var(--green-soft); }
-  .rv-top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
-  .rv-top .st { color: var(--ink); white-space: nowrap; }
-  .rv-text { margin: 2px 0 8px; font-size: 18px; font-weight: 800; }
-  .rv-tries { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
-  .rv-tries small { display: block; padding-left: 30px; font-size: 13px; font-weight: 600; color: var(--muted); }
-  .rv-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; font-weight: 700; }
-  .rv-foot .btn { padding: 6px 14px; font-size: 14px; }
-  .rv-tries li.pxl-first { margin-top: 2px; padding-top: 8px; border-top: 1.5px dashed var(--yellow); }
-  .rv-tries li.pxl > b { color: var(--primary); }
-  .px { margin-top: 10px; padding: 14px 16px; border-radius: 12px; background: var(--card); border: 2px solid var(--primary);
-    display: flex; flex-direction: column; gap: 10px; }
-  .px .target { font-size: 22px; line-height: 1.5; }
-  .px .ptt { padding: 16px; font-size: 18px; }
-  .px .meter-row { margin: 0; }
-  .px-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
-  .once { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
-  .once li::before { content: "✓ "; font-weight: 800; }
-  .c2-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-  @media (max-width: 620px) { .c2-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .steps > li.done { border-color: var(--green); background: var(--green-soft); }
+  .steps .num {
+    flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--primary-soft); color: var(--primary); font-weight: 800;
+  }
+  .steps > li.done .num { background: var(--green); color: var(--ink); }
+  .steps .body { flex: 1; min-width: 0; }
+  .steps .body b.t { display: block; font-size: 17px; }
+  .steps .body .sub { margin-top: 4px; }
+  .steps .body > .btn { margin-top: 8px; text-decoration: none; }
+  .steps .check {
+    flex: none; display: flex; align-items: center; gap: 6px; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; padding-top: 4px;
+  }
+  .steps .check input { width: 20px; height: 20px; accent-color: var(--green); margin: 0; }
+  .howto { list-style: decimal; margin: 4px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; color: var(--ink); }
+  .howto kbd { font-size: 13px; }
+  .copy-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+  .copy-row code {
+    padding: 8px 12px; border-radius: 8px; background: var(--soft); font-size: 17px; font-weight: 700;
+    font-family: inherit; word-break: break-all;
+  }
   .nav-row { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; margin-top: 16px; }
+  .done-box { text-align: center; padding: 26px 20px; }
 
   /* 개인정보 처리방침 안내 (화면 1 · 5) */
   .privacy-box {
@@ -215,6 +201,7 @@
   .privacy-box .btn { font-size: 15px; padding: 8px 14px; text-decoration: none; }
   .privacy-link { margin: 24px 0 0; text-align: center; font-size: 13px; }
   .privacy-link a { color: var(--muted); }
+  .done-box .big-emoji { font-size: 56px; line-height: 1.2; }
 
   /* ---------- 화면 2 ---------- */
   .tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -386,6 +373,11 @@
   .ptt:disabled { background: var(--line); color: var(--muted); box-shadow: none; }
   .meter i { background: var(--speak); }
 
+  .done-mark {
+    width: 64px; height: 64px; margin: 0 auto 8px; border-radius: 50%; border: 2.5px solid var(--ink);
+    display: grid; place-items: center; background: var(--green); color: var(--ink);
+    font-size: 34px; font-weight: 800;
+  }
   .btn:focus-visible, .ptt:focus-visible, .tab:focus-visible, .selfbtn:focus-visible {
     outline: 3px solid var(--ink); outline-offset: 2px;
   }
@@ -548,7 +540,7 @@
   <!-- ======================= 화면 4: 결과 카드 ======================= -->
   <section class="screen" data-screen="4" hidden>
     <h1>모두 끝났어요!</h1>
-    <p class="lead">결과 카드를 이미지로 저장해요. 다음 장에서 틀린 표현을 다시 연습해요.</p>
+    <p class="lead">결과 카드를 이미지로 저장해서 패들렛에 올려요.</p>
     <div class="card" style="padding:12px">
       <canvas id="cardCanvas" class="result-card" aria-label="롤플레이 결과 카드"></canvas>
     </div>
@@ -558,34 +550,29 @@
       <div id="saveMsg" hidden></div>
     </div>
     <div class="nav-row" style="justify-content:flex-end">
-      <button type="button" class="btn primary big" id="toReview">다음: 다시 볼 문장 ▶</button>
+      <button type="button" class="btn primary big" id="toSubmit">다음: 패들렛에 올리기 ▶</button>
     </div>
   </section>
 
-  <!-- ======================= 화면 5: 결과 카드 2 · 다시 볼 문장 ======================= -->
+  <!-- ======================= 화면 5: 패들렛 제출 ======================= -->
   <section class="screen" data-screen="5" hidden>
-    <h1>다시 볼 문장을 연습해요</h1>
-    <p class="lead">한 번에 통과하지 못한 문장이에요. <b>연습하기</b>를 눌러 다시 말해 보고, 이 카드도 이미지로 저장해요.</p>
-    <div class="c2" id="card2"></div>
-    <div class="px" id="pxPanel" hidden>
-      <div class="px-row"><b>다시 말해 보기</b><button type="button" class="linkbtn" id="pxClose">연습 닫기</button></div>
-      <div class="target en" id="pxTarget"></div>
-      <div class="px-row" style="justify-content:flex-start">
-        <button type="button" class="btn" id="pxHear">🔊 들어 보기</button>
-        <span class="sub" style="margin:0">문장을 보고 소리 내어 말해요.</span>
-      </div>
-      <div class="meter-row">내 목소리 <div class="meter"><i></i></div></div>
-      <button type="button" class="btn primary" id="pxMic" hidden>🎤 마이크 켜기</button>
-      <button type="button" class="ptt" id="pxPtt"></button>
-      <div class="kbd-hint"></div>
-      <div id="pxRes" hidden></div>
+    <h1>패들렛에 올려요</h1>
+    <p class="lead">한 단계씩 따라 하고, 끝낸 단계에는 <b>했어요</b>에 체크해요.</p>
+    <div id="padletMissing" hidden></div>
+    <div class="card">
+      <ol class="steps" id="submitSteps"></ol>
     </div>
-    <div class="c2-btns">
-      <button type="button" class="btn big" id="backToCard">◀ 결과 카드 1로 돌아가기</button>
-      <button type="button" class="btn primary big" id="saveCard2">이미지로 저장</button>
+    <div class="start-area">
+      <button type="button" class="btn primary big" id="submitDone" disabled>제출 완료</button>
+      <p class="sub" id="submitLeft"></p>
     </div>
-    <p class="sub" id="card2File" style="text-align:center"></p>
-    <div id="save2Msg" hidden></div>
+    <div class="card done-box" id="submitFinish" hidden>
+      <div class="done-mark" aria-hidden="true">✓</div>
+      <h2 style="justify-content:center">제출 완료!</h2>
+    </div>
+    <div class="nav-row">
+      <button type="button" class="btn" id="backToCard">◀ 결과 카드로 돌아가기</button>
+    </div>
     <p class="privacy-link"><a href="privacy.html" target="_blank" rel="noopener">개인정보 처리방침</a></p>
   </section>
 </main>
@@ -604,6 +591,15 @@ const params = new URLSearchParams(location.search);
 const CLASS_NAME = (params.get('class') || '').trim();
 const CAT_COUNT = params.get('cat') === '2' ? 2 : 3;
 
+/*
+ * 제출할 패들렛 주소. 다른 반은 링크 뒤에 &padlet=주소 를 붙이면 바뀐다.
+ * (padlet.com 주소만 받음)
+ */
+const PADLET_DEFAULT = 'https://padlet.com/insuenglish/2-a-6-role-play-s0241xw19s0rvbnew7me';
+const PADLET_URL = (() => {
+  const u = (params.get('padlet') || PADLET_DEFAULT).trim();
+  return /^https:\/\/([a-z0-9-]+\.)*padlet\.(com|org)\//i.test(u) ? u : '';
+})();
 
 /*
  * 종류(장르)마다 그 장르에 맞는 작품·음식만 고를 수 있게 한다.
@@ -752,7 +748,7 @@ function defaultState() {
     choices,
     startedAt: null,
     rp: null, // 롤플레이 진행 상황 (화면 3)
-    submit: { saved: false, saved2: false, done: false }, // 결과 카드 1·2 이미지 저장 (화면 4-5)
+    submit: { saved: false, checks: {}, done: false }, // 결과 카드 저장 · 패들렛 제출 (화면 4-5)
   };
 }
 function loadState() {
@@ -760,7 +756,7 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
     if (!saved) return base;
-    // 결과 카드 2까지 저장했거나 시작한 지 1시간이 지난 기록은 다른 학생(다음 반)이 쓰는 것으로 보고
+    // 제출까지 끝냈거나 시작한 지 1시간이 지난 기록은 다른 학생(다음 반)이 쓰는 것으로 보고
     // 소리 설정만 살려 처음부터
     const stale = saved.startedAt && Date.now() - saved.startedAt > STALE_MS;
     if ((saved.submit && saved.submit.done) || stale) {
@@ -782,8 +778,8 @@ function loadState() {
     if (saved.rp && saved.rp.order === 'BA' && saved.rp.ci < CAT_KEYS.length) base.rp = saved.rp;
     if (saved.submit) {
       base.submit.saved = !!saved.submit.saved;
-      base.submit.saved2 = !!saved.submit.saved2;
       base.submit.done = !!saved.submit.done;
+      Object.assign(base.submit.checks, saved.submit.checks);
     }
   } catch (e) { /* 저장된 값이 깨졌으면 새로 시작 */ }
   return base;
@@ -1343,7 +1339,7 @@ function go(n) {
     renderRp();
   }
   if (n === 4) renderScreen4();
-  if (n === 5) { pxKey = null; renderScreen5(); }
+  if (n === 5) renderScreen5();
   window.scrollTo(0, 0);
 }
 
@@ -2052,8 +2048,6 @@ const rpPtt = PTT.create($('#rpPtt'), {
     if (!line.me || !rec || lineDone(rec)) return;
     const s = scoreAlts(alts, line);
     rec.attempts++;
-    // 결과 카드 2에 보여 줄 시도별 기록 (들린 문장 · 놓친 조각)
-    (rec.tries = rec.tries || []).push({ heard: s.text, miss: s.frags.filter(x => !x.ok).map(x => x.f) });
     rec.heard = s.text;
     rec.frags = s.frags;
     rec.extras = s.extras;
@@ -2181,9 +2175,16 @@ function wrapText(ctx, text, maxW) {
 }
 function two(n) { return String(n).padStart(2, '0'); }
 
-/** 카드 머리말(번호 · 날짜). 다음에 그릴 y를 돌려줌 */
-function paintHeader(ctx, d, title) {
-  const W = CARD_W, X = CARD_PAD;
+/** 카드를 그리고 전체 높이를 돌려줌 (높이 측정용으로 한 번, 실제로 한 번 호출) */
+function paintCard(ctx, d) {
+  const W = CARD_W, X = CARD_PAD, IW = W - CARD_PAD * 2;
+  const { s } = d;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#FBFBFB';
+  ctx.fillRect(0, 0, W, ctx.canvas.height);
+
+  // 머리말: 번호 · 날짜
   const HB = 160;
   ctx.fillStyle = CC.primary;
   ctx.fillRect(0, 0, W, HB);
@@ -2194,19 +2195,17 @@ function paintHeader(ctx, d, title) {
   ctx.fillText('중2 영어 · Check and Talk', X, 34);
   ctx.fillStyle = '#FBFBFB';
   cardFont(ctx, 42, 800);
-  ctx.fillText(title, X, 70);
+  ctx.fillText('추천 요청 롤플레이 결과', X, 70);
   ctx.textAlign = 'right';
   cardFont(ctx, 30, 700);
   ctx.fillText(state.profile.num, W - X, 40);
   cardFont(ctx, 23, 500);
-  ctx.fillText(`${idLabel(state.profile.num)} · ${dateText(d.date)}`, W - X, 86);
+  const dateStr = `${d.date.getFullYear()}.${two(d.date.getMonth() + 1)}.${two(d.date.getDate())}`;
+  ctx.fillText(`${idLabel(state.profile.num)} · ${dateStr}`, W - X, 86);
   ctx.textAlign = 'left';
-  return HB + 32;
-}
+  let y = HB + 32;
 
-/** 요약 4칸. 다음에 그릴 y를 돌려줌 */
-function paintSummary(ctx, s, y) {
-  const X = CARD_PAD, IW = CARD_W - CARD_PAD * 2;
+  // 요약 4칸
   const boxes = [
     ['통과한 대사', `${s.passed} / ${s.lines}`],
     ['대사당 평균 시도', `${s.avgAttempts.toFixed(1)}번`],
@@ -2224,21 +2223,7 @@ function paintSummary(ctx, s, y) {
     cardFont(ctx, 36, 800);
     ctx.fillText(value, bx + 20, y + 58);
   });
-  return y + bh + 32;
-}
-function dateText(dt) { return `${dt.getFullYear()}.${two(dt.getMonth() + 1)}.${two(dt.getDate())}`; }
-
-/** 카드를 그리고 전체 높이를 돌려줌 (높이 측정용으로 한 번, 실제로 한 번 호출) */
-function paintCard(ctx, d) {
-  const W = CARD_W, X = CARD_PAD, IW = W - CARD_PAD * 2;
-  const { s } = d;
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#FBFBFB';
-  ctx.fillRect(0, 0, W, ctx.canvas.height);
-
-  let y = paintHeader(ctx, d, '추천 요청 롤플레이 결과');
-  y = paintSummary(ctx, s, y);
+  y += bh + 32;
 
   // 카테고리별 표
   const P = 24, colGap = 20, colW = (IW - P * 2 - colGap) / 2, LH = 30;
@@ -2344,8 +2329,9 @@ function paintCard(ctx, d) {
 }
 
 /** 카드를 그리고, 그린 글자와 글꼴 목록을 돌려준다 (글꼴 미리 받기용) */
-function drawCard() { return drawTo($('#cardCanvas'), paintCard, cardData()); }
-function drawTo(canvas, paint, d) {
+function drawCard() {
+  const canvas = $('#cardCanvas');
+  const d = cardData();
   const probe = document.createElement('canvas');
   probe.width = CARD_W;
   const pctx = probe.getContext('2d');
@@ -2355,19 +2341,19 @@ function drawTo(canvas, paint, d) {
     used.set(pctx.font, (used.get(pctx.font) || '') + t);
     return fillText(t, ...rest);
   };
-  const h = paint(pctx, d);
+  const h = paintCard(pctx, d);
   canvas.width = CARD_W;
   canvas.height = h;
-  paint(canvas.getContext('2d'), d);
+  paintCard(canvas.getContext('2d'), d);
   return used;
 }
 
-/** 파일명: 번호_날짜.png (예: 2301_20260929.png), 결과 카드 2는 번호_날짜_2.png. 번호에 학년·반이 들어 있음 */
-function cardFileName(part = 1) {
+/** 파일명: 번호_날짜.png (예: 2301_20260929.png). 번호에 학년·반이 들어 있음 */
+function cardFileName() {
   const dt = new Date(state.rp.finishedAt || Date.now());
   const date = `${dt.getFullYear()}${two(dt.getMonth() + 1)}${two(dt.getDate())}`;
   const safe = s => String(s).trim().replace(/[\\/:*?"<>|\s]+/g, '');
-  return `${safe(state.profile.num)}_${date}${part === 2 ? '_2' : ''}.png`;
+  return `${safe(state.profile.num)}_${date}.png`;
 }
 
 function renderScreen4() {
@@ -2380,358 +2366,132 @@ function renderScreen4() {
   Promise.all(loads).then(() => { if (state.screen === 4) drawCard(); });
 }
 
-/** canvas를 PNG로 내려받기. 성공하면 onSaved() */
-function saveCanvas(canvas, fileName, msg, onSaved) {
+$('#saveCard').addEventListener('click', () => {
+  const msg = $('#saveMsg');
   const fail = () => showMsg(msg, 'err',
-    '😥 이미지 저장이 안 됐어요. <b>화면을 캡처해 주세요.</b><br>크롬북: <kbd>Ctrl</kbd> + <kbd>창 보기 ⧉</kbd> 키를 누르면 화면 전체가 캡처돼요.');
+    '😥 이미지 저장이 안 됐어요. <b>화면을 캡처해서 올려 주세요.</b><br>크롬북: <kbd>Ctrl</kbd> + <kbd>창 보기 ⧉</kbd> 키를 누르면 화면 전체가 캡처돼요.');
   try {
-    canvas.toBlob(blob => {
+    $('#cardCanvas').toBlob(blob => {
       if (!blob) { fail(); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = cardFileName();
       document.body.append(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
-      onSaved();
+      state.submit.saved = true;
+      state.submit.checks.save = true;
+      save();
+      if (state.screen === 5) renderScreen5();
+      showMsg(msg, 'ok', `✅ 저장했어요! <b>${esc(cardFileName())}</b><br>크롬북 <b>파일 앱 → 다운로드</b> 폴더에 있어요. 이 파일을 패들렛에 올려요.`);
     }, 'image/png');
   } catch (e) {
     fail();
   }
-}
-
-$('#saveCard').addEventListener('click', () => {
-  const msg = $('#saveMsg');
-  saveCanvas($('#cardCanvas'), cardFileName(), msg, () => {
-    state.submit.saved = true;
-    save();
-    showMsg(msg, 'ok', `✅ 저장했어요! <b>${esc(cardFileName())}</b><br>크롬북 <b>파일 앱 → 다운로드</b> 폴더에 있어요.`);
-  });
 });
 
 /* =========================================================
- * 화면 5 — 결과 카드 2: 다시 볼 문장 · 연습하기
+ * 화면 5: 패들렛 제출
  * ========================================================= */
-/** 학생 대사를 '다시 볼 문장'(한 번에 통과 못 함)과 '한 번에 통과한 문장'으로 나눔 */
-function reviewData() {
-  const R = state.rp, items = [], once = [];
-  CAT_KEYS.forEach(k => ['B', 'A'].forEach(role => buildRole(k, role).filter(l => l.me).forEach(l => {
-    const lk = recKey(k, l.id), rec = R.records[lk];
-    if (!rec || !rec.attempts) return;
-    const it = { key: k, lk, cat: CATS[k], line: l, id: l.id, text: l.text, rec };
-    if (rec.passed && rec.attempts === 1) once.push(it);
-    else {
-      const tries = [...triesOf(rec), ...pxTriesOf(rec)];
-      items.push(Object.assign(it, { tries, tip: nextTip(k, tries), passed: rec.passed || pxPassed(rec) }));
-    }
-  })));
-  return { items, once, goal: goalTip(items) };
+/** 패들렛 글 제목: 번호 4자리 (예: 2301) */
+function postTitle() {
+  return String(state.profile.num).trim();
 }
 
-/** 시도별 기록. 기록을 모으기 전 저장본은 마지막 시도만 있음 */
-function triesOf(rec) {
-  if (rec.tries && rec.tries.length) return rec.tries.map((t, i) => Object.assign({ label: `${i + 1}차` }, t));
-  return [{ label: `${rec.attempts}차`, heard: rec.heard, miss: (rec.frags || []).filter(x => !x.ok).map(x => x.f) }];
+function submitSteps() {
+  return [
+    { id: 'save', t: '결과 카드 이미지를 저장해요',
+      d: state.submit.saved
+        ? `저장한 파일: <b>${esc(cardFileName())}</b> (파일 앱 → 다운로드)`
+        : '아직 저장하지 않았다면 아래 버튼을 눌러요. 저장이 안 되면 결과 카드 화면을 캡처해요.',
+      extra: '<button type="button" class="btn" data-act="save">이미지로 저장</button>' },
+    { id: 'name', t: '번호를 복사해요',
+      d: '<b>복사</b>를 누르면 패들렛 제목 칸에 붙여 넣을 수 있어요.',
+      extra: `<div class="copy-row"><code>${esc(postTitle())}</code><button type="button" class="btn" data-act="copy">복사</button></div>` },
+    { id: 'post', t: '패들렛에 올려요',
+      d: `<ol class="howto">
+          <li>아래 <b>패들렛 열기</b>를 눌러 패들렛을 열어요. (이 앱 탭은 닫지 마세요)</li>
+          <li>오른쪽 아래 동그란 <b>＋</b> 버튼을 눌러요.</li>
+          <li>제목 칸에 번호를 붙여 넣어요. <kbd>Ctrl</kbd> + <kbd>V</kbd></li>
+          <li><b>업로드</b> → <b>파일 앱의 다운로드 폴더</b>에서 결과 카드 이미지를 골라요.</li>
+          <li><b>게시</b> 버튼을 눌러요.</li>
+        </ol>`,
+      extra: PADLET_URL ? '<a class="btn primary" data-act="open" target="_blank" rel="noopener">패들렛 열기</a>' : '' },
+  ];
 }
-
-/** 결과 카드 2에서 연습한 기록 (연습 1, 연습 2 …) */
-function pxTriesOf(rec) {
-  const list = rec.px && Array.isArray(rec.px.tries) ? rec.px.tries : [];
-  return list.map((t, i) => Object.assign({ label: `연습 ${i + 1}`, px: true, first: i === 0 }, t));
-}
-const pxPassed = rec => pxTriesOf(rec).some(t => !t.miss.length);
-
-/** 놓친 조각 → 다음에 할 일 */
-function tipFor(key, frag) {
-  const r = resolved(key), f = loose(frag);
-  const T = {
-    'what kind of': 'What kinds of로 문장을 시작해요.',
-    'do you like': '문장 끝에 do you like를 붙여요.',
-    'can you recommend': 'Can you recommend로 부탁을 시작해요.',
-    'for me': '문장 끝에 for me를 붙여요.',
-    'i like': 'I like로 문장을 시작해요.',
-    'i recommend': 'I recommend로 추천을 시작해요.',
-    'its really': "It's really로 어떤지 말해요.",
-  };
-  if (T[f]) return T[f];
-  if (f === loose(key)) return `묻는 종류 ${key}을(를) 문장에 넣어요.`;
-  if (r.kind && f === loose(r.kind)) return `내가 고른 ${r.kind}을(를) 문장에 넣어요.`;
-  if (r.adj && f === loose(r.adj)) return `내가 고른 형용사 ${r.adj}을(를) 넣어요.`;
-  return `${frag}을(를) 빠뜨리지 말고 말해요.`;
-}
-
-/** 마지막 시도가 연습 통과면 칭찬, 아니면 마지막으로 틀린 시도의 첫 번째 놓친 조각 */
-function nextTip(key, tries) {
-  const last = tries[tries.length - 1];
-  if (last && last.px && !last.miss.length) return '처음부터 문장 보기 없이 한 번에 말해 봐요.';
-  const failed = tries.filter(t => t.miss && t.miss.length);
-  if (!failed.length) return '이번엔 문장 보기 없이 한 번에 말해 봐요.';
-  return tipFor(key, failed[failed.length - 1].miss[0]);
-}
-
-/** 가장 많이 놓친 조각 → 다음 목표 */
-function goalTip(items) {
-  const count = new Map();
-  items.forEach(it => it.tries.forEach(t => (t.miss || []).forEach(f => {
-    const tip = tipFor(it.key, f);
-    count.set(tip, (count.get(tip) || 0) + 1);
-  })));
-  let best = null;
-  count.forEach((n, tip) => { if (!best || n > best.n) best = { n, tip }; });
-  if (best) return best.tip;
-  return items.length ? '이번엔 문장 보기 없이 한 번에 말해 봐요.' : '모든 문장을 한 번에 통과했어요! 다음엔 더 빠르게 말해 봐요.';
-}
-
-const statusText = rec => (rec.passed ? `${rec.attempts}번 만에 통과` : pxPassed(rec) ? '연습으로 통과' : '다시 연습');
-const triedLine = t => (t.miss && t.miss.length ? `✕ 놓친 부분: ${t.miss.join(' / ')}` : '✓ 통과');
-
-let pxKey = null; // 지금 연습 중인 대사
 
 function renderScreen5() {
-  $('#card2File').textContent = `파일 이름: ${cardFileName(2)}`;
-  renderCard2();
-  drawCard2();
+  const miss = $('#padletMissing');
+  miss.hidden = !!PADLET_URL;
+  if (!PADLET_URL) miss.innerHTML = '<div class="banner warn">📌 패들렛 주소가 설정되지 않았어요. <b>선생님이 알려 준 패들렛</b>을 직접 열어서 올려 주세요.</div>';
+  const checks = state.submit.checks;
+  const steps = submitSteps();
+  $('#submitSteps').innerHTML = steps.map((st, i) => `
+    <li class="${checks[st.id] ? 'done' : ''}" data-id="${st.id}">
+      <span class="num">${checks[st.id] ? '✓' : i + 1}</span>
+      <div class="body">
+        <b class="t">${st.t}</b>
+        <div class="sub">${st.d}</div>
+        ${st.extra || ''}
+      </div>
+      <label class="check"><input type="checkbox" ${checks[st.id] ? 'checked' : ''}> 했어요</label>
+    </li>`).join('');
+  $$('#submitSteps a[data-act="open"]').forEach(a => { a.href = PADLET_URL || '#'; });
+
+  const left = steps.filter(st => !checks[st.id]).length;
+  const done = state.submit.done;
+  $('#submitDone').disabled = left > 0;
+  $('#submitDone').hidden = done;
+  $('#submitLeft').hidden = done;
+  $('#submitLeft').textContent = left > 0 ? `남은 단계: ${left}개` : '모든 단계를 끝냈어요. 제출 완료를 눌러요!';
+  $('#submitFinish').hidden = !done;
 }
 
-function renderCard2() {
-  const panel = $('#pxPanel');
-  $('#card2').after(panel); // 카드를 다시 그려도 연습 칸은 남김
-  const d = cardData(), s = d.s, rv = reviewData();
-  const sum = [
-    ['통과한 대사', `${s.passed} / ${s.lines}`],
-    ['대사당 평균 시도', `${s.avgAttempts.toFixed(1)}번`],
-    ['도움 단계', `${s.startLevel} → ${s.endLevel}단계`],
-    ['자기평가', s.selfEval.join(' ')],
-  ];
-  $('#card2').innerHTML = `
-    <div class="c2-head">
-      <div><small>중2 영어 · Check and Talk</small><b>추천 요청 롤플레이 결과 2 · 다시 볼 문장</b></div>
-      <div class="who-num"><b>${esc(state.profile.num)}</b>${esc(idLabel(state.profile.num))} · ${dateText(d.date)}</div>
-    </div>
-    <div class="c2-body">
-      <div class="c2-sum">${sum.map(([l, v]) => `<div><span>${l}</span><b>${esc(v)}</b></div>`).join('')}</div>
-      <div class="c2-goal"><span>다음 목표</span><b>${esc(rv.goal)}</b></div>
-      <h3>다시 볼 문장 ${rv.items.length}개<small>말한 문장은 크롬이 알아들은 글자예요</small></h3>
-      ${rv.items.length ? `<div class="rv-list">${rv.items.map(it => `
-        <div class="rv${it.passed ? ' pass' : ''}" data-lk="${it.lk}">
-          <div class="rv-top"><span>${it.cat.emoji} ${it.cat.label} · ${it.id}</span><span class="st">${statusText(it.rec)}</span></div>
-          <div class="rv-text en">${esc(it.text)}</div>
-          <ol class="rv-tries">${it.tries.map(t => `
-            <li class="${t.px ? 'pxl' : ''}${t.first ? ' pxl-first' : ''}"><b>${t.label}</b> <span class="en">“${esc(t.heard)}”</span><small>${esc(triedLine(t))}</small></li>`).join('')}
-          </ol>
-          <div class="rv-foot">
-            <span>→ 다음엔: ${esc(it.tip)}</span>
-            <button type="button" class="btn primary" data-px="${it.lk}">${pxTriesOf(it.rec).length ? '또 연습하기' : '연습하기'}</button>
-          </div>
-        </div>`).join('')}</div>` : '<p style="margin:0">모든 문장을 한 번에 통과했어요! 🎉</p>'}
-      <h3>한 번에 통과한 문장 ${rv.once.length}개</h3>
-      ${rv.once.length ? `<ul class="once">${rv.once.map(it => `<li class="en">${esc(it.text)}</li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 없어요.</p>'}
-    </div>`;
-  const box = pxKey && $(`#card2 .rv[data-lk="${pxKey}"]`);
-  if (box) box.append(panel);
-  else closePractice();
-}
-
-function findItem(lk) { return reviewData().items.find(it => it.lk === lk); }
-
-function openPractice(lk) {
-  const it = findItem(lk);
-  if (!it) return;
-  if (pxKey !== lk) $('#pxRes').hidden = true;
-  pxKey = lk;
-  $('#pxTarget').innerHTML = markHL(it.text, it.line.hl);
-  $('#pxMic').hidden = Mic.ready;
-  $('#pxPtt').hidden = !Mic.ready;
-  $(`#card2 .rv[data-lk="${lk}"]`).append($('#pxPanel'));
-  $('#pxPanel').hidden = false;
-  PTT.active = Mic.ready ? pxPtt : null;
-  pxPtt.render();
-}
-
-function closePractice() {
-  if (PTT.active === pxPtt) PTT.active.cancel();
-  pxKey = null;
-  PTT.active = null;
-  $('#pxPanel').hidden = true;
-  $('#card2').after($('#pxPanel'));
-}
-
-$('#card2').addEventListener('click', e => {
-  const b = e.target.closest('[data-px]');
-  if (!b) return;
-  openPractice(b.dataset.px);
-  $('#pxPanel').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-});
-$('#pxClose').addEventListener('click', () => {
-  const lk = pxKey;
-  closePractice();
-  const b = lk && $(`#card2 [data-px="${lk}"]`);
-  if (b) b.focus();
-});
-$('#pxHear').addEventListener('click', () => {
-  const it = pxKey && findItem(pxKey);
-  if (it && !TTS.busy) TTS.speak(it.text);
-});
-$('#pxMic').addEventListener('click', async () => {
-  const r = await Mic.init();
-  if (r.ok && pxKey) openPractice(pxKey);
-  else if (!r.ok) showMsg($('#pxRes'), 'err', r.msg);
+$('#submitSteps').addEventListener('change', e => {
+  const li = e.target.closest('li[data-id]');
+  if (!li) return;
+  state.submit.checks[li.dataset.id] = e.target.checked;
+  if (!e.target.checked) state.submit.done = false;
+  save();
+  renderScreen5();
 });
 
-const pxPtt = PTT.create($('#pxPtt'), {
-  onStart() { $('#pxRes').hidden = true; },
-  onResult(alts) {
-    if (state.screen !== 5 || !pxKey) return;
-    const it = findItem(pxKey);
-    if (!it) return;
-    const sc = scoreAlts(alts, it.line);
-    const px = it.rec.px = it.rec.px && Array.isArray(it.rec.px.tries) ? it.rec.px : { tries: [] };
-    px.tries.push({ heard: sc.text, miss: sc.frags.filter(x => !x.ok).map(x => x.f) });
-    save();
-    const lk = pxKey;
-    closePractice();
-    renderCard2();
-    drawCard2();
-    const b = $(`#card2 [data-px="${lk}"]`);
-    if (b) { b.focus({ preventScroll: true }); b.closest('.rv').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
-  },
-  onError(html) { showMsg($('#pxRes'), 'err', html); },
-});
-
-/* ---------- 결과 카드 2 이미지 ---------- */
-const card2Canvas = document.createElement('canvas');
-
-function paintCard2(ctx, d) {
-  const W = CARD_W, X = CARD_PAD, IW = W - CARD_PAD * 2;
-  const { s, rv } = d;
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#FBFBFB';
-  ctx.fillRect(0, 0, W, ctx.canvas.height);
-  let y = paintHeader(ctx, d, '롤플레이 결과 2 · 다시 볼 문장');
-  y = paintSummary(ctx, s, y);
-
-  // 다음 목표
-  cardFont(ctx, 27, 800);
-  const gl = wrapText(ctx, rv.goal, IW - 48);
-  const gh = 20 + 30 + gl.length * 38 + 16;
-  roundBox(ctx, X, y, IW, gh, 16, '#FAE3D5');
-  ctx.fillStyle = CC.muted;
-  cardFont(ctx, 21, 700);
-  ctx.fillText('다음 목표', X + 24, y + 20);
-  ctx.fillStyle = CC.ink;
-  cardFont(ctx, 27, 800);
-  gl.forEach((ln, j) => ctx.fillText(ln, X + 24, y + 52 + j * 38));
-  y += gh + 34;
-
-  // 다시 볼 문장
-  ctx.fillStyle = CC.ink;
-  cardFont(ctx, 30, 800);
-  const h1 = `다시 볼 문장 ${rv.items.length}개`;
-  ctx.fillText(h1, X, y);
-  const h1w = ctx.measureText(h1).width;
-  ctx.fillStyle = CC.muted;
-  cardFont(ctx, 20, 500);
-  ctx.fillText('말한 문장은 크롬이 알아들은 글자예요', X + h1w + 16, y + 9);
-  y += 50;
-  if (!rv.items.length) {
-    ctx.fillStyle = CC.ink;
-    cardFont(ctx, 24, 600);
-    ctx.fillText('모든 문장을 한 번에 통과했어요!', X, y);
-    y += 46;
+$('#submitSteps').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]');
+  if (!act) return;
+  if (act.dataset.act === 'save') {
+    drawCard(); // 화면 4를 거치지 않고 왔을 때도 최신 카드로 저장
+    $('#saveCard').click();
+  } else if (act.dataset.act === 'copy') {
+    const reset = t => {
+      const b = $('#submitSteps [data-act="copy"]');
+      b.textContent = t;
+      setTimeout(() => { b.textContent = '복사'; }, 1800);
+    };
+    const copied = () => {
+      state.submit.checks.name = true;
+      save();
+      renderScreen5();
+      reset('✅ 복사했어요');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(postTitle()).then(copied, () => reset('직접 적어 주세요'));
+    } else {
+      reset('직접 적어 주세요');
+    }
   }
-  const P = 24, iw = IW - P * 2;
-  rv.items.forEach(it => {
-    cardFont(ctx, 28, 800);
-    const tl = wrapText(ctx, it.text, iw);
-    const tries = it.tries.map(t => {
-      cardFont(ctx, 23, 500);
-      const lines = wrapText(ctx, `${t.label}  “${t.heard}”`, iw);
-      cardFont(ctx, 20, 600);
-      return { lines, sub: wrapText(ctx, triedLine(t), iw - 36), px: t.px, first: t.first };
-    });
-    cardFont(ctx, 23, 800);
-    const tip = wrapText(ctx, `→ 다음엔: ${it.tip}`, iw);
-    const triesH = tries.reduce((n, t) => n + t.lines.length * 32 + t.sub.length * 28 + 10 + (t.first ? 14 : 0), 0);
-    const h = P + 28 + 8 + tl.length * 38 + 12 + triesH + 4 + tip.length * 32 + P;
-    const pass = it.passed;
-    roundBox(ctx, X, y, IW, h, 16, pass ? CC.greenSoft : CC.yellowSoft, pass ? CC.green : CC.yellow);
-    let by = y + P;
-    ctx.fillStyle = CC.muted;
-    cardFont(ctx, 21, 700);
-    ctx.fillText(`${it.cat.emoji} ${it.cat.label} · ${it.id}`, X + P, by);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = CC.ink;
-    ctx.fillText(statusText(it.rec), W - X - P, by);
-    ctx.textAlign = 'left';
-    by += 28 + 8;
-    cardFont(ctx, 28, 800);
-    tl.forEach(ln => { ctx.fillText(ln, X + P, by); by += 38; });
-    by += 12;
-    tries.forEach(t => {
-      if (t.first) { // 연습 기록 앞 점선
-        ctx.strokeStyle = CC.yellow;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 6]);
-        ctx.beginPath();
-        ctx.moveTo(X + P, by + 2);
-        ctx.lineTo(W - X - P, by + 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        by += 14;
-      }
-      ctx.fillStyle = t.px ? CC.primary : CC.ink;
-      cardFont(ctx, 23, t.px ? 700 : 500);
-      t.lines.forEach(ln => { ctx.fillText(ln, X + P, by); by += 32; });
-      ctx.fillStyle = CC.muted;
-      cardFont(ctx, 20, 600);
-      t.sub.forEach(ln => { ctx.fillText(ln, X + P + 36, by); by += 28; });
-      by += 10;
-    });
-    by += 4;
-    ctx.fillStyle = CC.ink;
-    cardFont(ctx, 23, 800);
-    tip.forEach(ln => { ctx.fillText(ln, X + P, by); by += 32; });
-    y += h + 16;
-  });
-
-  // 한 번에 통과한 문장
-  y += 18;
-  ctx.fillStyle = CC.ink;
-  cardFont(ctx, 30, 800);
-  ctx.fillText(`한 번에 통과한 문장 ${rv.once.length}개`, X, y);
-  y += 50;
-  cardFont(ctx, 23, 500);
-  if (!rv.once.length) { ctx.fillStyle = CC.muted; ctx.fillText('아직 없어요.', X, y); y += 34; }
-  rv.once.forEach(it => wrapText(ctx, `✓ ${it.text}`, IW).forEach(ln => { ctx.fillText(ln, X, y); y += 34; }));
-  return y + CARD_PAD - 10;
-}
-
-function card2Data() { return Object.assign(cardData(), { rv: reviewData() }); }
-
-function drawCard2() {
-  const d = card2Data();
-  const used = drawTo(card2Canvas, paintCard2, d);
-  // 웹 글꼴은 쓰는 글자만 나눠 받으므로, 카드에만 나오는 글자도 받은 뒤 다시 그림
-  if (!document.fonts || !document.fonts.load) return;
-  const loads = [...used].map(([font, text]) => document.fonts.load(font, text).catch(() => []));
-  Promise.all(loads).then(() => drawTo(card2Canvas, paintCard2, card2Data()));
-}
-
-$('#saveCard2').addEventListener('click', () => {
-  const msg = $('#save2Msg');
-  drawTo(card2Canvas, paintCard2, card2Data());
-  saveCanvas(card2Canvas, cardFileName(2), msg, () => {
-    state.submit.saved2 = true;
-    state.submit.done = true; // 다음에 앱을 열면 다음 학생으로 보고 처음부터
-    save();
-    showMsg(msg, 'ok', `✅ 저장했어요! <b>${esc(cardFileName(2))}</b><br>크롬북 <b>파일 앱 → 다운로드</b> 폴더에 있어요. 활동을 모두 마쳤어요.`);
-  });
 });
 
-$('#toReview').addEventListener('click', () => go(5));
+$('#submitDone').addEventListener('click', () => {
+  state.submit.done = true;
+  save();
+  renderScreen5();
+  $('#submitFinish').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+$('#toSubmit').addEventListener('click', () => go(5));
 $('#backToCard').addEventListener('click', () => go(4));
 
 /* =========================================================
